@@ -20,17 +20,9 @@ impl FieldMap {
             ]),
         );
 
-        for seg in self.field.iter() {
-            let intersect = seg.find_intersection(sensor_lineseg);
-            if let Some(intersect) = intersect {
-                let distance_to_point = intersect.distance_to(pos);
-
-                if distance_to_point < closest_intersect_dist {
-                    closest_intersect_dist = distance_to_point;
-                    intersect_pos = Some(intersect);
-                }
-            }
-        }
-        intersect_pos
+        self.field
+            .into_iter()
+            .filter_map(|seg| seg.find_intersection(sensor_lineseg))
+            .min_by(|intersection| intersection.distance_to(pos))
     }
 }
