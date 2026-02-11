@@ -9,9 +9,6 @@ pub struct FieldMap {
 
 impl FieldMap {
     pub fn intersect_pos(&self, pos: Vector<2>, angle: f32) -> Option<Vector<2>> {
-        let mut closest_intersect_dist: f32 = 10000.0;
-        let mut intersect_pos: Option<Vector<2>> = None;
-
         let sensor_lineseg = LineSeg(
             pos,
             Vector([
@@ -21,8 +18,8 @@ impl FieldMap {
         );
 
         self.field
-            .into_iter()
+            .iter()
             .filter_map(|seg| seg.find_intersection(sensor_lineseg))
-            .min_by(|intersection| intersection.distance_to(pos))
+            .min_by_key(|intersection| intersection.distance_to(pos).to_bits())
     }
 }
