@@ -1,7 +1,7 @@
 use crate::vector::Vector;
 
 #[derive(Clone, Copy)]
-pub struct LineSeg(Vector<2>, Vector<2>);
+pub struct LineSeg(pub Vector<2>, pub Vector<2>);
 
 impl LineSeg {
     pub fn is_point_in_bound(self, point: Vector<2>) -> bool {

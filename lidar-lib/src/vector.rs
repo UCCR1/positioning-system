@@ -1,4 +1,5 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use core::ops::{Add, Div, Mul, Neg, Sub};
+use libm::sqrtf;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Vector<const N: usize>(pub [f32; N]);
@@ -11,7 +12,7 @@ impl<const N: usize> Vector<N> {
     }
 
     pub fn length(self) -> f32 {
-        self.dot(self).sqrt()
+        sqrtf(self.dot(self))
     }
 
     pub fn distance_to(self, target: Self) -> f32 {
