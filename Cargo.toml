@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["lidar-lib"]
+members = ["lidar-lib", "position-lib"]
 exclude = [
     "firmware",
 ] # firmware uses the esp rust toolchain so it cannot be included as part of the workspace
