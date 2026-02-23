@@ -5254,6 +5254,10 @@
 		(uuid "3505dcca-c8f9-4db3-a2e4-de0cfed77232")
 	)
 	(no_connect
+		(at 166.37 104.14)
+		(uuid "44005b5f-ed61-4d1f-9201-739f5e669334")
+	)
+	(no_connect
 		(at 135.89 101.6)
 		(uuid "48699a8b-e844-4630-b85a-fab69b094f72")
 	)
@@ -5266,10 +5270,6 @@
 		(uuid "4fc6bc2d-ff0f-49fb-b2a1-80fd8f5785fb")
 	)
 	(no_connect
-		(at 135.89 68.58)
-		(uuid "5bca74b1-b400-4638-b46d-c11dd9a6bc9c")
-	)
-	(no_connect
 		(at 166.37 81.28)
 		(uuid "780ca47c-970d-4c90-ae53-a69939468eb4")
 	)
@@ -5280,10 +5280,6 @@
 	(no_connect
 		(at 48.26 52.07)
 		(uuid "7bec2bb7-36bb-468b-bdef-e484d3362c31")
-	)
-	(no_connect
-		(at 135.89 71.12)
-		(uuid "887f81ac-71d9-4fbe-a1cd-6534a0dc2e1e")
 	)
 	(no_connect
 		(at 166.37 76.2)
@@ -5300,6 +5296,10 @@
 	(no_connect
 		(at 166.37 78.74)
 		(uuid "9d7f8ca6-c516-4de7-b63d-8104a0c895ff")
+	)
+	(no_connect
+		(at 166.37 106.68)
+		(uuid "a9d64f2e-9dd3-489e-9e23-85c40ffcd2cd")
 	)
 	(no_connect
 		(at 135.89 81.28)
@@ -5557,16 +5557,6 @@
 	)
 	(wire
 		(pts
-			(xy 177.8 104.14) (xy 166.37 104.14)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2c17d46e-6147-4cc6-a7ef-ebc0025e0f66")
-	)
-	(wire
-		(pts
 			(xy 92.71 26.67) (xy 92.71 27.94)
 		)
 		(stroke
@@ -5734,6 +5724,16 @@
 			(type default)
 		)
 		(uuid "44aee0d0-4412-42bd-9e7b-e6eeda82d013")
+	)
+	(wire
+		(pts
+			(xy 127 68.58) (xy 135.89 68.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4838c07d-1937-4124-bbf0-0e35a13ed730")
 	)
 	(wire
 		(pts
@@ -6137,16 +6137,6 @@
 	)
 	(wire
 		(pts
-			(xy 177.8 106.68) (xy 166.37 106.68)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8e69cd9a-b280-4be2-80ae-e340d0583a13")
-	)
-	(wire
-		(pts
 			(xy 170.18 149.86) (xy 172.72 149.86)
 		)
 		(stroke
@@ -6364,6 +6354,16 @@
 			(type default)
 		)
 		(uuid "a9c556cb-a7fe-411d-9900-ffece09fd462")
+	)
+	(wire
+		(pts
+			(xy 125.73 71.12) (xy 135.89 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b7e3cdcf-9ea2-44eb-9062-5480d8f802a9")
 	)
 	(wire
 		(pts
@@ -6925,6 +6925,16 @@
 		)
 		(uuid "18bf73ce-1fae-4de1-bc27-283742c355ff")
 	)
+	(label "LIDAR_PWM"
+		(at 125.73 71.12 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1cbcca34-7123-4863-8034-35e7a9d4ebc8")
+	)
 	(label "IMU_CS"
 		(at 127 91.44 0)
 		(effects
@@ -6984,26 +6994,6 @@
 			(justify left bottom)
 		)
 		(uuid "3e6d96d9-af7a-4363-b9ec-3cd72bba931f")
-	)
-	(label "LIDAR_PWM"
-		(at 177.8 106.68 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "452e3203-abe4-471a-8c78-93fe62ec7b43")
-	)
-	(label "LIDAR_RX"
-		(at 177.8 104.14 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "56fded48-96b2-468a-844f-191d00e5c021")
 	)
 	(label "MCU_EN"
 		(at 72.39 71.12 180)
@@ -7084,6 +7074,16 @@
 			(justify left bottom)
 		)
 		(uuid "70347c89-f59f-409f-8a9b-7dc156bf6231")
+	)
+	(label "LIDAR_RX"
+		(at 127 68.58 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "74ee88ef-c003-4b65-a424-432ef7b59e85")
 	)
 	(label "Prog_TX"
 		(at 113.03 36.83 180)
