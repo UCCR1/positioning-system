@@ -2612,20 +2612,16 @@
 		(uuid "fa4f6133-bec5-42cc-9675-27a758022833")
 	)
 	(no_connect
+		(at 157.48 46.99)
+		(uuid "086f2ede-3439-4e00-a3a0-ab1f554f45e8")
+	)
+	(no_connect
 		(at 157.48 54.61)
 		(uuid "166dcbad-4ed6-4f04-bf98-de1b582fe7b2")
 	)
 	(no_connect
 		(at 157.48 80.01)
 		(uuid "250fcd8c-16f8-46bd-b2a2-92ffc32cf117")
-	)
-	(no_connect
-		(at 127 62.23)
-		(uuid "290b9d45-6ce7-4449-8a8b-e4f7831c35ca")
-	)
-	(no_connect
-		(at 127 59.69)
-		(uuid "36218e5b-9efc-4c3c-b927-b6634f2375fd")
 	)
 	(no_connect
 		(at 157.48 85.09)
@@ -2648,6 +2644,10 @@
 		(uuid "785d9121-a581-4072-ac48-7e9293c586a6")
 	)
 	(no_connect
+		(at 157.48 77.47)
+		(uuid "88698405-0c51-4b0f-84a4-014e353ca3b8")
+	)
+	(no_connect
 		(at 157.48 57.15)
 		(uuid "92ce3aa9-6e77-4c14-9b24-dd645e737699")
 	)
@@ -2668,8 +2668,8 @@
 		(uuid "bc55aaf2-5e86-4e61-9f2f-0a0288adcf28")
 	)
 	(no_connect
-		(at 127 57.15)
-		(uuid "ddbbb551-5ea6-4690-8274-21b13069066d")
+		(at 157.48 74.93)
+		(uuid "c47c37b3-ffb6-4ecb-a2f9-681177e7f9fe")
 	)
 	(no_connect
 		(at 157.48 64.77)
@@ -2737,6 +2737,16 @@
 	)
 	(wire
 		(pts
+			(xy 118.11 62.23) (xy 127 62.23)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1079f86b-88a0-4077-a0df-c6b0d4a1f105")
+	)
+	(wire
+		(pts
 			(xy 43.18 68.58) (xy 57.15 68.58)
 		)
 		(stroke
@@ -2774,16 +2784,6 @@
 			(type default)
 		)
 		(uuid "1cdc8a95-9973-4c5f-b363-72acace775e7")
-	)
-	(wire
-		(pts
-			(xy 157.48 46.99) (xy 166.37 46.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "218a13fd-1ed8-4b74-ac49-2754fb8a49a9")
 	)
 	(polyline
 		(pts
@@ -2827,6 +2827,16 @@
 	)
 	(wire
 		(pts
+			(xy 166.37 49.53) (xy 157.48 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2d7785a4-a3ba-49b4-b66f-4fef183ecfcb")
+	)
+	(wire
+		(pts
 			(xy 43.18 88.9) (xy 40.64 88.9)
 		)
 		(stroke
@@ -2867,6 +2877,16 @@
 	)
 	(wire
 		(pts
+			(xy 118.11 59.69) (xy 127 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3a9a82b5-f9df-4393-83af-740ae79ef72b")
+	)
+	(wire
+		(pts
 			(xy 60.96 31.75) (xy 52.07 31.75)
 		)
 		(stroke
@@ -2897,7 +2917,7 @@
 	)
 	(wire
 		(pts
-			(xy 118.11 67.31) (xy 127 67.31)
+			(xy 115.57 67.31) (xy 127 67.31)
 		)
 		(stroke
 			(width 0)
@@ -3024,16 +3044,6 @@
 			(type default)
 		)
 		(uuid "5ea484ee-27ea-477b-8a3e-cd31a9aae0e1")
-	)
-	(wire
-		(pts
-			(xy 168.91 74.93) (xy 157.48 74.93)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "613b0b3e-aa56-4879-bc68-7ab09de6b075")
 	)
 	(wire
 		(pts
@@ -3357,13 +3367,13 @@
 	)
 	(wire
 		(pts
-			(xy 167.64 77.47) (xy 157.48 77.47)
+			(xy 118.11 57.15) (xy 127 57.15)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c4d04c95-3098-4f92-8deb-61b1fe4714be")
+		(uuid "c5193dfc-3193-4b57-b37d-7afb83780560")
 	)
 	(wire
 		(pts
@@ -3404,16 +3414,6 @@
 			(type default)
 		)
 		(uuid "d078f8df-57dc-4a32-8cdd-6bf9a6414345")
-	)
-	(wire
-		(pts
-			(xy 157.48 49.53) (xy 166.37 49.53)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d7f2e585-46c6-47e9-8991-66045c8e0a13")
 	)
 	(wire
 		(pts
@@ -3535,16 +3535,6 @@
 		)
 		(uuid "ff683b08-93a2-48a0-b777-3877fdd27ec1")
 	)
-	(label "Brain_TX"
-		(at 166.37 46.99 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "0a0fe233-aa00-437b-a29f-9cae00566ce6")
-	)
 	(label "Encoder1_A"
 		(at 115.57 85.09 0)
 		(effects
@@ -3664,16 +3654,6 @@
 			(justify left bottom)
 		)
 		(uuid "3e6d96d9-af7a-4363-b9ec-3cd72bba931f")
-	)
-	(label "LIDAR_PWM"
-		(at 168.91 74.93 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "408e238c-9e4e-4e4e-84f3-d2117a7c8ee4")
 	)
 	(label "Encoder1_X"
 		(at 115.57 87.63 0)
@@ -3795,26 +3775,6 @@
 		)
 		(uuid "9c14871c-6341-4715-a6e4-bc70d1226d68")
 	)
-	(label "LIDAR_RX"
-		(at 167.64 77.47 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "a4c30391-e312-4026-968a-280e87d7bda6")
-	)
-	(label "Brain_Dir"
-		(at 118.11 67.31 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "ab97fd77-e18e-4cb5-a2cb-5f9dab3b09be")
-	)
 	(label "Brain_Dir"
 		(at 52.07 60.96 180)
 		(effects
@@ -3895,16 +3855,6 @@
 		)
 		(uuid "dc78cf87-97d4-4f77-9165-0719e7c09a7b")
 	)
-	(label "Brain_RX"
-		(at 166.37 49.53 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "dd8fdab6-2895-4e9f-ae7e-9913a94d428a")
-	)
 	(label "IMU_In"
 		(at 118.11 74.93 0)
 		(effects
@@ -3926,6 +3876,26 @@
 		(uuid "e7ecb35e-1341-41b0-ba64-fadbea622c51")
 	)
 	(label "LIDAR_PWM"
+		(at 115.57 67.31 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "eeb65af3-d0fe-4507-b1c4-d7a3b629e059")
+	)
+	(label "Brain_TX"
+		(at 118.11 57.15 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f2795e33-4b7b-4cec-9e5f-b7a6afdaa7c4")
+	)
+	(label "LIDAR_PWM"
 		(at 247.65 87.63 0)
 		(effects
 			(font
@@ -3944,6 +3914,36 @@
 			(justify right bottom)
 		)
 		(uuid "f5dcb8a1-d695-4eb3-bf68-b9cafc54bc94")
+	)
+	(label "Brain_Dir"
+		(at 118.11 59.69 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f6af429b-2e94-489c-b35d-0dd6cdd633c4")
+	)
+	(label "LIDAR_RX"
+		(at 157.48 49.53 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f6fd73b5-ceea-46c9-bbe6-2a986062f72b")
+	)
+	(label "Brain_RX"
+		(at 118.11 62.23 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "faab7adf-3449-4cc4-bd2b-07633556aa62")
 	)
 	(label "Prog_RX"
 		(at 166.37 44.45 180)
