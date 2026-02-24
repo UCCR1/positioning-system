@@ -3595,6 +3595,16 @@
 		)
 		(uuid "1a38b9df-6106-4330-9752-ceb99db939d8")
 	)
+	(label "IMU_INT2"
+		(at 118.11 52.07 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1ab114f9-ebdd-4011-85a2-45b51e022dca")
+	)
 	(label "IMU_CS"
 		(at 118.11 72.39 0)
 		(effects
@@ -3795,16 +3805,6 @@
 		)
 		(uuid "a4c30391-e312-4026-968a-280e87d7bda6")
 	)
-	(label "IMU_INT2"
-		(at 118.11 49.53 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "aaea4c6d-b4f4-4c6b-bd94-db5b0285b32b")
-	)
 	(label "Brain_Dir"
 		(at 118.11 67.31 0)
 		(effects
@@ -3875,6 +3875,16 @@
 		)
 		(uuid "d3849c73-8143-4079-a28c-1ad7c5736570")
 	)
+	(label "IMU_INT1"
+		(at 118.11 49.53 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d9c3398e-6d9f-4acd-8f52-7767c053669a")
+	)
 	(label "IMU_Out"
 		(at 118.11 80.01 0)
 		(effects
@@ -3914,16 +3924,6 @@
 			(justify left bottom)
 		)
 		(uuid "e7ecb35e-1341-41b0-ba64-fadbea622c51")
-	)
-	(label "IMU_INT1"
-		(at 118.11 52.07 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "f2e4277e-5fe4-4955-bbab-8eee07b0397e")
 	)
 	(label "LIDAR_PWM"
 		(at 247.65 87.63 0)
@@ -4358,70 +4358,6 @@
 			(project "positioning_board"
 				(path "/6f62fc68-1fd8-4b2d-94a6-50bf685a778b"
 					(reference "U1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Mechanical:MountingHole")
-		(at 40.64 115.57 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "14100987-dd35-4cde-998e-e8bbfc49a10a")
-		(property "Reference" "H4"
-			(at 43.18 114.2999 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "MountingHole"
-			(at 43.18 116.8399 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "MountingHole:MountingHole_4.3mm_M4"
-			(at 40.64 115.57 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 40.64 115.57 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Mounting Hole without connection"
-			(at 40.64 115.57 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(instances
-			(project "positioning_board"
-				(path "/6f62fc68-1fd8-4b2d-94a6-50bf685a778b"
-					(reference "H4")
 					(unit 1)
 				)
 			)
