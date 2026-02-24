@@ -683,6 +683,18 @@
     [
       "6f62fc68-1fd8-4b2d-94a6-50bf685a778b",
       "Root"
+    ],
+    [
+      "750030b4-0c1e-42ab-b781-d081b8f713ad",
+      "SmartPort"
+    ],
+    [
+      "7828229c-78cb-4964-a659-5eefadb09745",
+      "12V_Buck"
+    ],
+    [
+      "f1274822-bcc6-439b-8ea9-50f0b2824640",
+      "usb_port"
     ]
   ],
   "text_variables": {}
