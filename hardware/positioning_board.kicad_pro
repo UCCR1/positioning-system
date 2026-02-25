@@ -697,6 +697,14 @@
     [
       "f1274822-bcc6-439b-8ea9-50f0b2824640",
       "usb_port"
+    ],
+    [
+      "8502a875-f916-4110-8fc2-6d67a47ded35",
+      "Encoder Interface"
+    ],
+    [
+      "e052f6d6-8783-4fd4-af50-08e4980bbe7c",
+      "Encoder Interface1"
     ]
   ],
   "text_variables": {}
