@@ -1,55 +1,44 @@
-use std::f32::consts::SQRT_2;
+use uom::si::f32::{Angle, Length, Ratio};
 
-use uom::si::{
-    f32::{Angle, Length, Ratio},
-    ratio::ratio,
-};
+use crate::vector::Vector;
 
-pub struct Odometry {
-    tracking_width: Length,
+#[derive(Copy, Clone)]
+pub struct TrackingWheel {
+    location: Vector<2, Length>,
+    direction: Vector<2, Ratio>,
+}
 
-    tracking_offset: Length,
+pub struct Odometry<const N: usize> {
+    tracking_wheels: [TrackingWheel; N],
 
-    turn_tolerance: Angle,
-
-    global_x: Length,
-    global_y: Length,
+    global_position: Vector<2, Length>,
     global_heading: Angle,
 }
 
-impl Odometry {
-    pub fn update(
-        &mut self,
-        left_wheel_travel: Length,
-        right_wheel_travel: Length,
-        delta_heading: Angle,
-    ) {
-        let local_delta_x = (left_wheel_travel - right_wheel_travel) * SQRT_2 / 4.0;
-        let local_delta_y = (left_wheel_travel + right_wheel_travel) * SQRT_2 / 4.0;
+impl<const N: usize> Odometry<N> {
+    pub fn update(&mut self, wheel_travel: [Length; N], delta_heading: Angle) {
+        let projected_travel_vectors =
+            wheel_travel
+                .into_iter()
+                .zip(self.tracking_wheels)
+                .map(|(travel, position)| {
+                    let measured_travel: Vector<2, Length> =
+                        position.direction.normalized() * travel;
 
-        let (true_delta_x, true_delta_y) = if delta_heading.abs() > self.turn_tolerance {
-            let center_delta_x = local_delta_x
-                - delta_heading * (self.tracking_offset + self.tracking_width * 0.5) / SQRT_2;
-            let center_delta_y = local_delta_y;
+                    let rotation_travel: Vector<2, Length> =
+                        -position.location.perp().bend(-delta_heading) * delta_heading;
 
-            (
-                delta_heading.sin() * center_delta_x / delta_heading
-                    + (Ratio::new::<ratio>(1.0) - delta_heading.cos()) * center_delta_y
-                        / delta_heading,
-                delta_heading.sin() * center_delta_y / delta_heading
-                    - (Ratio::new::<ratio>(1.0) - delta_heading.cos()) * center_delta_x
-                        / delta_heading,
-            )
-        } else {
-            (local_delta_x, local_delta_y)
-        };
+                    measured_travel - rotation_travel.project(measured_travel)
+                });
 
-        self.global_x +=
-            true_delta_y * self.global_heading.sin() + true_delta_x * self.global_heading.cos();
+        let center_travel: Vector<2, Length> =
+            projected_travel_vectors.fold(Vector::default(), |a, b| a + b) / N as f32;
 
-        self.global_y +=
-            true_delta_y * self.global_heading.cos() + true_delta_x * self.global_heading.sin();
+        center_travel.closest_point(center_travel, center_travel);
 
+        let true_travel = center_travel.bend(-delta_heading);
+
+        self.global_position = self.global_position + true_travel;
         self.global_heading += delta_heading;
     }
 }

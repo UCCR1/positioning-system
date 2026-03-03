@@ -44,6 +44,7 @@ dependencies = [
 name = "position-lib"
 version = "0.1.0"
 dependencies = [
+ "libm",
  "uom",
 ]
 

@@ -4,8 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-uom = { version = "0.38.0", default-features = false, features = [
-    "si",
-    "f32",
-    "std",
-] }
+libm = "0.2.16"
+uom = { version = "0.38.0", default-features = false, features = ["si", "f32"] }
