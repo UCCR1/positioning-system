@@ -1,8 +1,11 @@
-use core::cell::RefCell;
+use core::{
+    cell::RefCell,
+    sync::atomic::{AtomicI32, Ordering},
+};
 
 use critical_section::Mutex;
 use esp_hal::{
-    gpio::{AnyPin, interconnect::PeripheralInput},
+    gpio::{AnyPin, Input, InputConfig, Pull, interconnect::InputSignal},
     handler,
     interrupt::Priority,
     pcnt::{
@@ -12,104 +15,109 @@ use esp_hal::{
     },
     peripherals::PCNT,
 };
-use static_cell::StaticCell;
 
 const THRESHOLD: i16 = i16::MAX / 2;
 
-static ENC0: StaticCell<QuadratureEncoder<0>> = StaticCell::new();
-static ENC1: StaticCell<QuadratureEncoder<1>> = StaticCell::new();
-
-pub static ENCODERS: Mutex<RefCell<[Option<&'static mut dyn Encoder>; 2]>> =
-    Mutex::new(RefCell::new([None, None]));
-
-pub trait Encoder: Send {
-    fn position(&self) -> i32;
-    fn handle_interrupt(&mut self);
+pub struct QuadratureEncoder<const U: usize> {
+    counter: Counter<'static, U>,
+    offset: &'static AtomicI32,
 }
 
-pub struct QuadratureEncoder<'a, const U: usize> {
-    unit: Unit<'a, U>,
-    counter: Counter<'a, U>,
-    offset: i32,
-}
-
-impl<'a, const NUM: usize> QuadratureEncoder<'a, NUM> {
-    pub fn new(
-        unit: Unit<'a, NUM>,
-        pin_a: impl PeripheralInput<'a>,
-        pin_b: impl PeripheralInput<'a>,
-    ) -> Self {
-        unit.set_high_limit(Some(THRESHOLD)).unwrap();
-        unit.set_low_limit(Some(-THRESHOLD)).unwrap();
-        unit.set_filter(Some(1023)).unwrap();
-        unit.clear();
-
-        let channel = &unit.channel0;
-
-        channel.set_ctrl_signal(pin_a);
-        channel.set_edge_signal(pin_b);
-        channel.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
-        channel.set_input_mode(EdgeMode::Increment, EdgeMode::Decrement);
-
-        unit.listen();
-        unit.resume();
-
-        let counter = unit.counter.clone();
-
-        QuadratureEncoder {
-            unit,
-            counter,
-            offset: 0,
-        }
+impl<const NUM: usize> QuadratureEncoder<NUM> {
+    pub fn position(&self) -> i32 {
+        self.counter.get() as i32 + self.offset.load(Ordering::SeqCst)
     }
 }
 
-impl<'a, const U: usize> Encoder for QuadratureEncoder<'a, U> {
-    fn position(&self) -> i32 {
-        self.counter.get() as i32 + self.offset
-    }
+fn configure_quadrature<const U: usize>(
+    unit: &Unit<'static, U>,
+    pin_a: InputSignal,
+    pin_b: InputSignal,
+) {
+    unit.set_high_limit(Some(THRESHOLD)).unwrap();
+    unit.set_low_limit(Some(-THRESHOLD)).unwrap();
+    unit.set_filter(Some(1023)).unwrap();
+    unit.clear();
 
-    fn handle_interrupt(&mut self) {
-        if self.unit.interrupt_is_set() {
-            let events = self.unit.events();
+    let ch0 = &unit.channel0;
+    ch0.set_ctrl_signal(pin_a.clone());
+    ch0.set_edge_signal(pin_b.clone());
+    ch0.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
+    ch0.set_input_mode(EdgeMode::Increment, EdgeMode::Decrement);
 
-            if events.high_limit {
-                self.offset += THRESHOLD as i32;
-            } else if events.low_limit {
-                self.offset -= THRESHOLD as i32;
-            }
+    // Use dual channel counter to double number of pulses
+    let ch1 = &unit.channel1;
+    ch1.set_ctrl_signal(pin_b);
+    ch1.set_edge_signal(pin_a);
+    ch1.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
+    ch1.set_input_mode(EdgeMode::Decrement, EdgeMode::Increment);
 
-            self.unit.reset_interrupt();
-        }
-    }
+    unit.listen();
+    unit.resume();
 }
 
-pub fn init_encoders<'a>(
+static UNIT0: Mutex<RefCell<Option<Unit<'static, 0>>>> = Mutex::new(RefCell::new(None));
+static UNIT1: Mutex<RefCell<Option<Unit<'static, 1>>>> = Mutex::new(RefCell::new(None));
+
+static VALUES: [AtomicI32; 2] = [AtomicI32::new(0), AtomicI32::new(0)];
+
+pub fn init_encoders(
     pcnt_periphal: PCNT<'static>,
     pins: [(AnyPin<'static>, AnyPin<'static>); 2],
-) {
+) -> (QuadratureEncoder<0>, QuadratureEncoder<1>) {
     let mut pcnt = Pcnt::new(pcnt_periphal);
 
     pcnt.set_interrupt_handler(interrupt_handler);
 
-    let [(pin_1a, pin_1b), (pin_2a, pin_2b)] = pins;
+    let config = InputConfig::default().with_pull(Pull::Up);
 
-    let enc0 = ENC0.init(QuadratureEncoder::new(pcnt.unit0, pin_1a, pin_1b));
-    let enc1 = ENC1.init(QuadratureEncoder::new(pcnt.unit1, pin_2a, pin_2b));
+    let [(pin_1a, pin_1b), (pin_2a, pin_2b)] =
+        pins.map(|(a, b)| (Input::new(a, config).into(), Input::new(b, config).into()));
 
-    critical_section::with(|cs| {
-        let mut encoders = ENCODERS.borrow_ref_mut(cs);
+    configure_quadrature(&pcnt.unit0, pin_1a, pin_1b);
 
-        encoders[0] = Some(enc0);
-        encoders[1] = Some(enc1);
-    })
+    let enc0 = QuadratureEncoder {
+        counter: pcnt.unit0.counter.clone(),
+        offset: &VALUES[0],
+    };
+
+    critical_section::with(|cs| UNIT0.borrow_ref_mut(cs).replace(pcnt.unit0));
+
+    configure_quadrature(&pcnt.unit1, pin_2a, pin_2b);
+
+    let enc1 = QuadratureEncoder {
+        counter: pcnt.unit1.counter.clone(),
+        offset: &VALUES[1],
+    };
+
+    critical_section::with(|cs| UNIT1.borrow_ref_mut(cs).replace(pcnt.unit1));
+
+    (enc0, enc1)
+}
+
+fn handle_interrupt<const U: usize>(unit: &Unit<'static, U>, offset: &AtomicI32) {
+    if unit.interrupt_is_set() {
+        let events = unit.events();
+
+        if events.high_limit {
+            offset.fetch_add(THRESHOLD as i32, Ordering::SeqCst);
+        } else if events.low_limit {
+            offset.fetch_add(-THRESHOLD as i32, Ordering::SeqCst);
+        }
+
+        unit.reset_interrupt();
+    }
 }
 
 #[handler(priority = Priority::Priority2)]
 fn interrupt_handler() {
     critical_section::with(|cs| {
-        for enc in ENCODERS.borrow_ref_mut(cs).iter_mut().flatten() {
-            enc.handle_interrupt();
+        if let Some(u) = UNIT0.borrow_ref_mut(cs).as_mut() {
+            handle_interrupt(u, &VALUES[0]);
+        }
+
+        if let Some(u) = UNIT1.borrow_ref_mut(cs).as_mut() {
+            handle_interrupt(u, &VALUES[1]);
         }
     });
 }

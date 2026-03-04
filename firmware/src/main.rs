@@ -35,7 +35,7 @@ fn main() -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_80MHz);
     let _peripherals = esp_hal::init(config);
 
-    encoder::init_encoders(
+    let (left_encoder, right_encoder) = encoder::init_encoders(
         _peripherals.PCNT,
         [
             (_peripherals.GPIO14.into(), _peripherals.GPIO15.into()),
@@ -45,6 +45,7 @@ fn main() -> ! {
 
     loop {
         let delay_start = Instant::now();
+
         while delay_start.elapsed() < Duration::from_millis(10) {}
     }
 }
