@@ -1,9 +1,35 @@
+use uom::{
+    ConstZero,
+    si::f32::{Angle, Area, Length, Ratio},
+};
+
 use super::Vector;
 
-use core::ops::{Deref, DerefMut};
+use core::{
+    iter::Sum,
+    ops::{Deref, DerefMut, Div, Mul, Sub},
+};
 
+/// A struct representing a Vector of length 1 (approximately).
+///
+/// UnitVectors cannot be instantiated directly, they are created by calling .normalized() on a regular Vector
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct UnitVector<const N: usize, T>(Vector<N, T>);
+
+impl UnitVector<2, Ratio> {
+    pub fn from_angle(angle: Angle) -> Self {
+        Self(Vector([
+            Ratio {
+                value: libm::cosf(angle.value),
+                ..Default::default()
+            },
+            Ratio {
+                value: libm::sinf(angle.value),
+                ..Default::default()
+            },
+        ]))
+    }
+}
 
 impl<const N: usize, T> Deref for UnitVector<N, T> {
     type Target = Vector<N, T>;
@@ -19,44 +45,74 @@ impl<const N: usize, T> DerefMut for UnitVector<N, T> {
     }
 }
 
-macro_rules! impl_real {
-    ($type:path, $unit:path, |$self:ident| $length:expr) => {
-        impl<const N: usize> UnitVector<N, $type> {
-            pub fn new(values: [$type; N]) -> UnitVector<N, $unit> {
-                let inner = Vector(values);
+pub trait Root {
+    type Root;
 
-                UnitVector(inner.normalized())
-            }
-        }
-
-        impl<const N: usize> Vector<N, $type> {
-            pub fn length(self) -> $type {
-                let $self = self;
-
-                $length
-            }
-
-            pub fn distance_to(self, target: Self) -> $type {
-                (target - self).length()
-            }
-
-            pub fn normalized(self) -> Vector<N, $unit> {
-                self / self.length()
-            }
-        }
-    };
+    fn sqrt(self) -> Self::Root;
 }
 
-impl_real!(f32, f32, |v| libm::sqrtf(v.dot(v)));
-impl_real!(f64, f64, |v| libm::sqrt(v.dot(v)));
+impl Root for f32 {
+    type Root = f32;
 
-impl_real!(uom::si::f32::Length, uom::si::f32::Ratio, |v| {
-    uom::si::f32::Length::new::<uom::si::length::meter>(libm::sqrtf(v.dot(v).value))
-});
+    fn sqrt(self) -> Self::Root {
+        libm::sqrtf(self)
+    }
+}
 
-impl_real!(uom::si::f32::Ratio, uom::si::f32::Ratio, |v| {
-    uom::si::f32::Ratio::new::<uom::si::ratio::ratio>(libm::sqrtf(v.dot(v).value))
-});
+impl Root for Area {
+    type Root = Length;
+
+    fn sqrt(self) -> Self::Root {
+        Length {
+            value: libm::sqrtf(self.value),
+            ..Default::default()
+        }
+    }
+}
+
+impl Root for Ratio {
+    type Root = Ratio;
+
+    fn sqrt(self) -> Self::Root {
+        Ratio {
+            value: libm::sqrtf(self.value),
+            ..Default::default()
+        }
+    }
+}
+
+impl<const N: usize, T, S, R> Vector<N, T>
+where
+    T: Copy + Mul<T, Output = S> + Sub<Output = T> + Div<Output = R>,
+    S: Sum + Root<Root = T>,
+{
+    pub fn length(self) -> T {
+        self.dot(self).sqrt()
+    }
+
+    pub fn distance_to(self, target: Self) -> T {
+        (target - self).length()
+    }
+
+    pub fn normalized(self) -> UnitVector<N, R> {
+        UnitVector(self / self.length())
+    }
+}
+
+impl Vector<2, Length> {
+    pub fn bend(self, angle: Angle) -> Self {
+        if angle == Angle::ZERO {
+            return self;
+        }
+
+        Self::new(
+            libm::sinf(angle.value) * self.x() / angle
+                - (1.0 - libm::cosf(angle.value)) * self.y() / angle,
+            libm::sinf(angle.value) * self.y() / angle
+                + (1.0 - libm::cosf(angle.value)) * self.x() / angle,
+        )
+    }
+}
 
 #[macro_export]
 macro_rules! real_vector {
@@ -69,14 +125,16 @@ macro_rules! real_vector {
 
 #[cfg(test)]
 mod tests {
+    use core::f32::consts::FRAC_1_SQRT_2;
+
     use super::*;
 
     use approx::assert_relative_eq;
-    use uom::si::{f32::Length, length::kilometer};
+    use uom::si::{angle::degree, f32::Length, length::kilometer, ratio::ratio};
 
     #[test]
     fn normalize() {
-        let a = UnitVector::<2, f32>::new([1.0, 1.0]);
+        let a = Vector([1.0f32, 1.0]).normalized();
 
         assert_relative_eq!(a.length(), 1.0);
 
@@ -89,5 +147,14 @@ mod tests {
         let vector = real_vector!(Length::kilometer, 3.0, 4.0);
 
         assert_relative_eq!(vector.length().value, Length::new::<kilometer>(5.0).value);
+    }
+
+    #[test]
+    fn from_angle() {
+        let vector = UnitVector::from_angle(Angle::new::<degree>(135.0));
+
+        assert_relative_eq!(vector.length().value, Ratio::new::<ratio>(1.0).value);
+        assert_relative_eq!(vector.x().value, Ratio::new::<ratio>(-FRAC_1_SQRT_2).value);
+        assert_relative_eq!(vector.y().value, Ratio::new::<ratio>(FRAC_1_SQRT_2).value);
     }
 }

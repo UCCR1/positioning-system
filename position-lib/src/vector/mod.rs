@@ -14,17 +14,30 @@ impl<const N: usize, T: Default> Default for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T, O> Vector<N, T>
-where
-    T: Mul<T, Output = O>,
-    O: Sum,
-{
-    pub fn dot(self, rhs: Self) -> O {
+impl<const N: usize, T> Vector<N, T> {
+    pub fn dot<O>(self, rhs: Self) -> O
+    where
+        T: Mul<T, Output = O>,
+        O: Sum,
+    {
         self.0.into_iter().zip(rhs.0).map(|(a, b)| a * b).sum()
     }
-}
 
-impl<const N: usize, T> Vector<N, T> {
+    pub fn product<Rhs, O>(self, rhs: Vector<N, Rhs>) -> Vector<N, O>
+    where
+        T: Mul<Rhs, Output = O> + Copy,
+        Rhs: Copy,
+        O: Default,
+    {
+        let mut output = Vector::<N, O>::default();
+
+        for i in 0..N {
+            output.0[i] = self.0[i] * rhs.0[i];
+        }
+
+        output
+    }
+
     pub fn lerp<S>(self, target: Self, t: S) -> Self
     where
         T: Copy + Mul<S, Output = T> + Add<T, Output = T> + Sub<T, Output = T>,
@@ -32,26 +45,22 @@ impl<const N: usize, T> Vector<N, T> {
     {
         self + target * t - self * t
     }
-}
 
-impl<const N: usize, T, S, O> Vector<N, T>
-where
-    T: Copy + Mul<T, Output = O> + Mul<S, Output = T>,
-    S: Copy,
-    O: Div<O, Output = S> + Sum,
-{
-    pub fn project(self, target: Self) -> Vector<N, T> {
+    pub fn project<S, O>(self, target: Self) -> Vector<N, T>
+    where
+        T: Copy + Mul<T, Output = O> + Mul<S, Output = T>,
+        S: Copy,
+        O: Div<O, Output = S> + Sum,
+    {
         target * (target.dot(self) / target.dot(target))
     }
-}
 
-impl<const N: usize, T, S, O> Vector<N, T>
-where
-    T: Copy + Mul<T, Output = O> + Mul<S, Output = T> + Sub<T, Output = T> + Add<T, Output = T>,
-    S: Copy,
-    O: Copy + Div<O, Output = S> + Sum + PartialOrd + Sub<O, Output = O>,
-{
-    pub fn closest_point(self, start: Self, end: Self) -> Self {
+    pub fn closest_point<S, O>(self, start: Self, end: Self) -> Self
+    where
+        T: Copy + Mul<T, Output = O> + Mul<S, Output = T> + Sub<T, Output = T> + Add<T, Output = T>,
+        S: Copy,
+        O: Copy + Div<O, Output = S> + Sum + PartialOrd + Sub<O, Output = O>,
+    {
         let v = end - start;
         let d = self - start;
 
@@ -219,12 +228,12 @@ impl<T> Vector<3, T> {
     }
 }
 
-impl<T, O> Vector<3, T>
-where
-    T: Copy + Mul<T, Output = O>,
-    O: Sub<O, Output = O>,
-{
-    pub fn cross(self, rhs: Self) -> Vector<3, O> {
+impl<T> Vector<3, T> {
+    pub fn cross<O>(self, rhs: Self) -> Vector<3, O>
+    where
+        T: Copy + Mul<T, Output = O>,
+        O: Sub<O, Output = O>,
+    {
         Vector::<3, O>::new(
             self.y() * rhs.z() - rhs.y() * self.z(),
             self.z() * rhs.x() - rhs.z() * self.x(),
@@ -263,6 +272,14 @@ mod tests {
         assert_eq!(
             Vector([1.0, 0.0, 0.0]).cross(Vector([0.0, 1.0, 0.0])),
             Vector([0.0, 0.0, 1.0])
+        )
+    }
+
+    #[test]
+    fn product() {
+        assert_eq!(
+            Vector([3.0, 2.0, 1.0]).product(Vector([1.0, 2.0, 3.0])),
+            Vector([3.0, 4.0, 3.0])
         )
     }
 }
