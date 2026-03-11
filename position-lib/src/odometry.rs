@@ -1,11 +1,12 @@
 use uom::si::f32::{Angle, Length, Ratio};
 
-use crate::vector::Vector;
+use crate::vector::{Vector, real::UnitVector};
 
 #[derive(Copy, Clone)]
 pub struct TrackingWheel {
-    location: Vector<2, Length>,
-    direction: Vector<2, Ratio>,
+    pub location: Vector<2, Length>,
+    pub direction: UnitVector<2, Ratio>,
+    pub weighting: Vector<2, Ratio>,
 }
 
 pub struct Odometry<const N: usize> {
@@ -16,27 +17,28 @@ pub struct Odometry<const N: usize> {
 }
 
 impl<const N: usize> Odometry<N> {
+    pub fn new(wheels: [TrackingWheel; N]) -> Self {
+        Self {
+            tracking_wheels: wheels,
+            global_position: Default::default(),
+            global_heading: Default::default(),
+        }
+    }
+
     pub fn update(&mut self, wheel_travel: [Length; N], delta_heading: Angle) {
-        let projected_travel_vectors =
-            wheel_travel
-                .into_iter()
-                .zip(self.tracking_wheels)
-                .map(|(travel, position)| {
-                    let measured_travel: Vector<2, Length> =
-                        position.direction.normalized() * travel;
+        let center_travel: Vector<2, Length> = wheel_travel
+            .into_iter()
+            .zip(self.tracking_wheels)
+            .map(|(travel, position)| {
+                let measured_travel: Vector<2, Length> = *position.direction * travel;
 
-                    let rotation_travel: Vector<2, Length> =
-                        -position.location.perp().bend(-delta_heading) * delta_heading;
+                let rotation_travel: Vector<2, Length> = -position.location.perp() * delta_heading;
 
-                    measured_travel - rotation_travel.project(measured_travel)
-                });
+                measured_travel - rotation_travel.project(measured_travel)
+            })
+            .fold(Default::default(), |a, b| a + b);
 
-        let center_travel: Vector<2, Length> =
-            projected_travel_vectors.fold(Vector::default(), |a, b| a + b) / N as f32;
-
-        center_travel.closest_point(center_travel, center_travel);
-
-        let true_travel = center_travel.bend(-delta_heading);
+        let true_travel = center_travel/*.bend(-delta_heading)*/;
 
         self.global_position = self.global_position + true_travel;
         self.global_heading += delta_heading;

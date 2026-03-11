@@ -1,18 +1,8 @@
+pub mod real;
+
 use core::{
     iter::Sum,
-    ops::{Add, Div, Mul, Neg, Sub},
-};
-
-use libm::{cosf, sinf, sqrtf};
-use uom::{
-    ConstZero,
-    si::{
-        angle::radian,
-        area::square_meter,
-        f32::{Angle, Length, Ratio},
-        length::meter,
-        ratio::ratio,
-    },
+    ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -31,53 +21,6 @@ where
 {
     pub fn dot(self, rhs: Self) -> O {
         self.0.into_iter().zip(rhs.0).map(|(a, b)| a * b).sum()
-    }
-}
-
-pub trait Lengthable {
-    type Output;
-    fn length(self) -> Self::Output;
-}
-
-impl<const N: usize> Lengthable for Vector<N, Length> {
-    type Output = Length;
-
-    fn length(self) -> Self::Output {
-        Length::new::<meter>(sqrtf(self.dot(self).get::<square_meter>()))
-    }
-}
-
-impl<const N: usize> Lengthable for Vector<N, Ratio> {
-    type Output = Ratio;
-
-    fn length(self) -> Self::Output {
-        Ratio::new::<ratio>(sqrtf(self.dot(self).get::<ratio>()))
-    }
-}
-
-impl<const N: usize> Lengthable for Vector<N, f32> {
-    type Output = f32;
-
-    fn length(self) -> Self::Output {
-        sqrtf(self.dot(self))
-    }
-}
-
-impl<const N: usize, T> Vector<N, T>
-where
-    Self: Lengthable + Sub<Self, Output = Self>,
-{
-    pub fn distance_to(self, target: Self) -> <Self as Lengthable>::Output {
-        (target - self).length()
-    }
-}
-
-impl<const N: usize, T, O> Vector<N, T>
-where
-    Self: Copy + Lengthable<Output = T> + Div<T, Output = Vector<N, O>>,
-{
-    pub fn normalized(self) -> Vector<N, O> {
-        self / self.length()
     }
 }
 
@@ -141,6 +84,17 @@ where
     }
 }
 
+impl<const N: usize, T> AddAssign for Vector<N, T>
+where
+    T: AddAssign + Copy,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.0[i] += rhs.0[i];
+        }
+    }
+}
+
 impl<const N: usize, T> Sub<Vector<N, T>> for Vector<N, T>
 where
     T: Sub<T, Output = T> + Copy,
@@ -156,6 +110,17 @@ where
     }
 }
 
+impl<const N: usize, T> SubAssign for Vector<N, T>
+where
+    T: SubAssign + Copy,
+{
+    fn sub_assign(&mut self, rhs: Self) {
+        for i in 0..N {
+            self.0[i] -= rhs.0[i];
+        }
+    }
+}
+
 impl<const N: usize, T, Rhs, O> Mul<Rhs> for Vector<N, T>
 where
     T: Mul<Rhs, Output = O>,
@@ -165,6 +130,18 @@ where
 
     fn mul(self, rhs: Rhs) -> Self::Output {
         Vector(self.0.map(|x| x * rhs))
+    }
+}
+
+impl<const N: usize, T, Rhs> MulAssign<Rhs> for Vector<N, T>
+where
+    T: MulAssign<Rhs>,
+    Rhs: Copy,
+{
+    fn mul_assign(&mut self, rhs: Rhs) {
+        for val in &mut self.0 {
+            *val *= rhs;
+        }
     }
 }
 
@@ -196,11 +173,11 @@ where
 }
 
 impl<T: Copy> Vector<2, T> {
-    pub fn x(self) -> T {
+    pub const fn x(self) -> T {
         self.0[0]
     }
 
-    pub fn y(self) -> T {
+    pub const fn y(self) -> T {
         self.0[1]
     }
 }
@@ -216,43 +193,28 @@ where
     }
 }
 
-impl Vector<2, Length> {
-    pub fn bend(self, angle: Angle) -> Self {
-        if angle == Angle::ZERO {
-            return self;
-        }
-
-        let rads = angle.get::<radian>();
-
-        Self::new(
-            sinf(rads) * self.x() / rads - (1.0 - cosf(rads)) * self.y() / rads,
-            sinf(rads) * self.y() / rads + (1.0 - cosf(rads)) * self.x() / rads,
-        )
-    }
-}
-
 impl<T> Vector<2, T> {
-    pub fn new(x: T, y: T) -> Self {
+    pub const fn new(x: T, y: T) -> Self {
         Self([x, y])
     }
 }
 
 impl<T: Copy> Vector<3, T> {
-    pub fn x(self) -> T {
+    pub const fn x(self) -> T {
         self.0[0]
     }
 
-    pub fn y(self) -> T {
+    pub const fn y(self) -> T {
         self.0[1]
     }
 
-    pub fn z(self) -> T {
+    pub const fn z(self) -> T {
         self.0[2]
     }
 }
 
 impl<T> Vector<3, T> {
-    pub fn new(x: T, y: T, z: T) -> Self {
+    pub const fn new(x: T, y: T, z: T) -> Self {
         Self([x, y, z])
     }
 }
@@ -294,11 +256,6 @@ mod tests {
     #[test]
     fn dot() {
         assert_eq!(Vector([1.0, 2.0]).dot(Vector([1.0, 2.0])), 5.0);
-    }
-
-    #[test]
-    fn length() {
-        assert_eq!(Vector([3.0, 4.0]).length(), 5.0);
     }
 
     #[test]

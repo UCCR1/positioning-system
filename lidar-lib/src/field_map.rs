@@ -1,7 +1,7 @@
 use crate::line_seg::LineSeg;
-use crate::vector::Vector;
 use alloc::vec::Vec;
 use libm::{cosf, sinf};
+use position_lib::vector::Vector;
 
 pub struct FieldMap {
     field: Vec<LineSeg>,
