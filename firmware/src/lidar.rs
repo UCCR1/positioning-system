@@ -1,10 +1,10 @@
 use esp_hal::{
-    Blocking,
     gpio::AnyPin,
     uart::{AnyUart, Config, RxError, Uart, UartRx},
+    Blocking,
 };
-use heapless::{CapacityError, Vec, spsc::Queue};
-use lidar_lib::data::{LidarParseError, LidarPoint, PACKET_HEADER, PACKET_SIZE, parse_packet};
+use heapless::spsc::Queue;
+use lidar_lib::data::{LidarDataReader, LidarPoint, LidarReadError};
 
 const LIDAR_BAUDRATE: u32 = 230400;
 
@@ -14,18 +14,16 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LidarError {
-    #[error("Packet failed to parse")]
-    PacketError(#[from] LidarParseError),
-    #[error("Failed to read serial data")]
+    #[error("Failed to read received bytes")]
+    ReadError(#[from] LidarReadError),
+    #[error("Failed to load serial data from UART")]
     SerialError(#[from] RxError),
-    #[error("Breached data buffer capacity")]
-    CapacityError(#[from] CapacityError),
 }
 
 pub struct Lidar<'a> {
     rx: UartRx<'a, Blocking>,
 
-    data_buffer: Vec<u8, 100>,
+    reader: LidarDataReader,
 
     points: Queue<LidarPoint, MAX_HISTORY>,
 }
@@ -40,7 +38,7 @@ impl<'a> Lidar<'a> {
 
         Self {
             rx,
-            data_buffer: Default::default(),
+            reader: LidarDataReader::new(),
             points: Default::default(),
         }
     }
@@ -54,19 +52,7 @@ impl<'a> Lidar<'a> {
 
         let read_size = self.rx.read(&mut tmp_buf)?;
 
-        if read_size > 0 {
-            self.data_buffer.extend_from_slice(&tmp_buf[..read_size])?;
-        }
-
-        while self.data_buffer.len() > 2 && !self.data_buffer.starts_with(&PACKET_HEADER) {
-            self.data_buffer.drain(..1);
-        }
-
-        if self.data_buffer.len() >= PACKET_SIZE && self.data_buffer.starts_with(&PACKET_HEADER) {
-            let packet = self.data_buffer.drain(..PACKET_SIZE);
-
-            let data = parse_packet(packet.as_slice())?;
-
+        if let Some(data) = self.reader.read_slice(&tmp_buf[..read_size])? {
             for point in data.points {
                 if self.points.is_full() {
                     self.points.dequeue();
