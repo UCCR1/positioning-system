@@ -137,7 +137,7 @@ impl<T> Vector<3, T> {
 #[macro_export]
 macro_rules! vector {
     [$($value:expr),*] => {
-        $crate::linalg::vector::Vector::from([$($value,)*])
+        $crate::vector::Vector::from([$($value,)*])
     };
 }
 

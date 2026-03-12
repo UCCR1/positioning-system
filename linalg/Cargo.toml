@@ -1,11 +1,12 @@
 [package]
-name = "position-lib"
+name = "linalg"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+paste = "1.0.15"
+libm = { workspace = true }
 uom = { workspace = true }
-linalg = { path = "../linalg" }
 
 [dev-dependencies]
 approx = { version = "0.5.1", default-features = false }

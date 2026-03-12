@@ -1,6 +1,6 @@
 use heapless::Vec;
 use libm::{cosf, sinf};
-use position_lib::linalg::vector::Vector;
+use linalg::vector::Vector;
 use uom::si::{
     f32::{Angle, Length},
     length::meter,

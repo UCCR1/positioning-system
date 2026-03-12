@@ -55,10 +55,21 @@ dependencies = [
  "approx",
  "heapless",
  "libm",
+ "linalg",
  "position-lib",
  "thiserror",
  "uom",
  "zerocopy",
+]
+
+[[package]]
+name = "linalg"
+version = "0.1.0"
+dependencies = [
+ "approx",
+ "libm",
+ "paste",
+ "uom",
 ]
 
 [[package]]
@@ -81,8 +92,7 @@ name = "position-lib"
 version = "0.1.0"
 dependencies = [
  "approx",
- "libm",
- "paste",
+ "linalg",
  "uom",
 ]
 

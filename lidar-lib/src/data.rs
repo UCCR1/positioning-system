@@ -1,5 +1,5 @@
 use heapless::{CapacityError, Vec};
-use position_lib::{linalg::vector::Vector, real_vector};
+use linalg::{real_vector, vector::Vector};
 use thiserror::Error;
 use uom::si::{
     angle::degree,

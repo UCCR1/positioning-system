@@ -12,7 +12,8 @@ use esp_hal::{
     main,
     time::{Duration, Instant},
 };
-use position_lib::{linalg::vector::real::UnitVector, odometry::TrackingWheel, real_vector};
+use linalg::{real_vector, vector::real::UnitVector};
+use position_lib::odometry::TrackingWheel;
 use uom::si::{
     angle::degree,
     f32::{Angle, Length},

@@ -1,11 +1,10 @@
 use core::array;
 
-use uom::si::f32::{Angle, Length, Ratio};
-
-use crate::linalg::{
+use linalg::{
     matrix::Matrix,
     vector::{Vector, real::UnitVector},
 };
+use uom::si::f32::{Angle, Length, Ratio};
 
 #[derive(Copy, Clone)]
 pub struct TrackingWheel {
@@ -76,6 +75,7 @@ mod test {
     use core::f32::consts::FRAC_1_SQRT_2;
 
     use approx::assert_relative_eq;
+    use linalg::{vector, vector::real::UnitVector};
     use uom::{
         ConstZero,
         si::{
@@ -85,15 +85,12 @@ mod test {
         },
     };
 
-    use crate::{
-        linalg::vector::real::UnitVector,
-        odometry::{Odometry, TrackingWheel},
-        vector,
-    };
+    use crate::odometry::{Odometry, TrackingWheel};
 
     #[test]
     fn horiz_and_diag_system() {
-        // This test case does not test rotation, so the position of the wheels is irrelevant
+        // This test case does not test rotation, so the position of the wheels is
+        // irrelevant
         let wheels = [
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::ZERO),
@@ -124,11 +121,13 @@ mod test {
             Angle::ZERO,
         );
 
-        // If the horizontal tracking wheel does move, and the right tracking wheel moves forwards by 1/SQRT(2), we must be moving only horizontal
+        // If the horizontal tracking wheel does move, and the right tracking wheel
+        // moves forwards by 1/SQRT(2), we must be moving only horizontal
         assert_relative_eq!(odom.global_position.x().value, 1.0);
         assert_relative_eq!(odom.global_position.y().value, 1.0);
 
-        // If the horizontal tracking wheel does move, and the right tracking wheel does not, we are moving perpendicular to the diagonal wheel
+        // If the horizontal tracking wheel does move, and the right tracking wheel does
+        // not, we are moving perpendicular to the diagonal wheel
         odom.update([Length::new::<meter>(1.0), Length::ZERO], Angle::ZERO);
 
         assert_relative_eq!(odom.global_position.x().value, 2.0);
@@ -168,7 +167,9 @@ mod test {
         assert_relative_eq!(odom.global_position.x().value, 0.0);
         assert_relative_eq!(odom.global_position.y().value, 1.0);
 
-        // If the left wheel rotates backwards by 1 unit, and right wheel forwards by 1 unit, AND we have rotated left by 1 radian, then we should not have had a change in position
+        // If the left wheel rotates backwards by 1 unit, and right wheel forwards by 1
+        // unit, AND we have rotated left by 1 radian, then we should not have had a
+        // change in position
         odom.update(
             [-Length::new::<meter>(1.0), Length::new::<meter>(1.0)],
             Angle::new::<radian>(1.0),

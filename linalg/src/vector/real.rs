@@ -13,7 +13,8 @@ use crate::vector;
 
 /// A struct representing a Vector of length 1 (approximately).
 ///
-/// UnitVectors cannot be instantiated directly, they are created by calling .normalized() on a regular Vector
+/// UnitVectors cannot be instantiated directly, they are created by calling
+/// .normalized() on a regular Vector
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct UnitVector<const N: usize, T>(Vector<N, T>);
 

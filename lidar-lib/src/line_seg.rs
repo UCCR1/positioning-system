@@ -1,4 +1,4 @@
-use position_lib::{linalg::vector::Vector, vector};
+use linalg::{vector, vector::Vector};
 use uom::{
     ConstZero,
     si::f32::{Area, Length},
@@ -44,7 +44,7 @@ impl LineSeg {
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
-    use position_lib::real_vector;
+    use linalg::real_vector;
 
     use super::*;
 
