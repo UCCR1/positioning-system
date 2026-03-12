@@ -2,7 +2,7 @@ pub mod real;
 
 use core::{
     iter::Sum,
-    ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -23,7 +23,7 @@ impl<const N: usize, T> Vector<N, T> {
         self.0.into_iter().zip(rhs.0).map(|(a, b)| a * b).sum()
     }
 
-    pub fn product<Rhs, O>(self, rhs: Vector<N, Rhs>) -> Vector<N, O>
+    pub fn peicewise_mul<Rhs, O>(self, rhs: Vector<N, Rhs>) -> Vector<N, O>
     where
         T: Mul<Rhs, Output = O> + Copy,
         Rhs: Copy,
@@ -33,6 +33,23 @@ impl<const N: usize, T> Vector<N, T> {
 
         for i in 0..N {
             output.0[i] = self.0[i] * rhs.0[i];
+        }
+
+        output
+    }
+
+    pub fn product<Rhs, O>(self, rhs: Vector<N, Rhs>) -> Vector<N, Vector<N, O>>
+    where
+        T: Mul<Rhs, Output = O> + Copy,
+        Rhs: Copy,
+        O: Default,
+    {
+        let mut output = Vector::<N, Vector<N, O>>::default();
+
+        for i in 0..N {
+            for j in 0..N {
+                output.0[i].0[j] = self.0[i] * rhs.0[j];
+            }
         }
 
         output
@@ -48,11 +65,18 @@ impl<const N: usize, T> Vector<N, T> {
 
     pub fn project<S, O>(self, target: Self) -> Vector<N, T>
     where
-        T: Copy + Mul<T, Output = O> + Mul<S, Output = T>,
+        T: Copy + Mul<T, Output = O> + Mul<S, Output = T> + Default,
         S: Copy,
-        O: Div<O, Output = S> + Sum,
+        O: Div<O, Output = S> + Sum + Default + PartialEq,
     {
-        target * (target.dot(self) / target.dot(target))
+        let denom = target.dot(target);
+
+        // Crude zero check
+        if denom == Default::default() {
+            return Default::default();
+        }
+
+        target * (target.dot(self) / denom)
     }
 
     pub fn closest_point<S, O>(self, start: Self, end: Self) -> Self
@@ -101,6 +125,15 @@ where
         for i in 0..N {
             self.0[i] += rhs.0[i];
         }
+    }
+}
+
+impl<const N: usize, T> Sum for Vector<N, T>
+where
+    T: Add<T, Output = T> + Default + Copy,
+{
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Default::default(), |a, b| a + b)
     }
 }
 
@@ -181,6 +214,20 @@ where
     }
 }
 
+impl<const N: usize, T> Index<usize> for Vector<N, T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl<const N: usize, T> IndexMut<usize> for Vector<N, T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
 impl<T: Copy> Vector<2, T> {
     pub const fn x(self) -> T {
         self.0[0]
@@ -242,6 +289,29 @@ impl<T> Vector<3, T> {
     }
 }
 
+impl<T> Vector<2, Vector<2, T>> {
+    pub fn det<O>(self) -> O
+    where
+        T: Mul<T, Output = O> + Copy,
+        O: Sub<O, Output = O>,
+    {
+        self[0][0] * self[1][1] - self[0][1] * self[1][0]
+    }
+
+    pub fn inv<O, D>(self) -> Vector<2, Vector<2, D>>
+    where
+        T: Neg<Output = T> + Mul<T, Output = O> + Div<O, Output = D> + Copy,
+        O: Sub<O, Output = O> + Copy,
+    {
+        let det = self.det();
+
+        Vector([
+            Vector([self[1][1] / det, -self[0][1] / det]),
+            Vector([-self[1][0] / det, self[0][0] / det]),
+        ])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -276,10 +346,26 @@ mod tests {
     }
 
     #[test]
+    fn peicewise_nul() {
+        assert_eq!(
+            Vector([3.0, 2.0, 1.0]).peicewise_mul(Vector([1.0, 2.0, 3.0])),
+            Vector([3.0, 4.0, 3.0])
+        )
+    }
+
+    #[test]
     fn product() {
         assert_eq!(
-            Vector([3.0, 2.0, 1.0]).product(Vector([1.0, 2.0, 3.0])),
-            Vector([3.0, 4.0, 3.0])
+            Vector([3.0, 2.0]).product(Vector([1.0, 2.0])),
+            Vector([Vector([3.0, 6.0]), Vector([2.0, 4.0])])
+        )
+    }
+
+    #[test]
+    fn sum() {
+        assert_eq!(
+            [Vector([3.0, 2.0]); 3].into_iter().sum::<Vector<_, _>>(),
+            Vector([9.0, 6.0])
         )
     }
 }
