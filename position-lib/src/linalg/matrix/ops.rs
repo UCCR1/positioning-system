@@ -1,0 +1,157 @@
+use core::array;
+use core::iter::Sum;
+use core::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
+
+use super::Matrix;
+
+impl<const M: usize, const N: usize, T> AddAssign for Matrix<M, N, T>
+where
+    T: AddAssign + Copy,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        for i in 0..M {
+            for j in 0..N {
+                self.0[i][j] += rhs.0[i][j];
+            }
+        }
+    }
+}
+
+impl<const M: usize, const N: usize, T> SubAssign for Matrix<M, N, T>
+where
+    T: SubAssign + Copy,
+{
+    fn sub_assign(&mut self, rhs: Self) {
+        for i in 0..M {
+            for j in 0..N {
+                self.0[i][j] -= rhs.0[i][j];
+            }
+        }
+    }
+}
+
+impl<const M: usize, const N: usize, T> Add<Self> for Matrix<M, N, T>
+where
+    Self: AddAssign,
+{
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self::Output {
+        self += rhs;
+
+        self
+    }
+}
+
+impl<const M: usize, const N: usize, T> Sub<Self> for Matrix<M, N, T>
+where
+    Self: SubAssign,
+{
+    type Output = Self;
+
+    fn sub(mut self, rhs: Self) -> Self::Output {
+        self -= rhs;
+
+        self
+    }
+}
+
+impl<const M: usize, const N: usize, T, Rhs, O> Mul<Rhs> for Matrix<M, N, T>
+where
+    T: Mul<Rhs, Output = O> + Copy,
+    Rhs: Copy,
+{
+    type Output = Matrix<M, N, O>;
+
+    fn mul(self, rhs: Rhs) -> Self::Output {
+        Matrix(array::from_fn(|i| array::from_fn(|j| self.0[i][j] * rhs)))
+    }
+}
+
+impl<const M: usize, const N: usize, T, Rhs, O> Div<Rhs> for Matrix<M, N, T>
+where
+    T: Div<Rhs, Output = O> + Copy,
+    Rhs: Copy,
+{
+    type Output = Matrix<M, N, O>;
+
+    fn div(self, rhs: Rhs) -> Self::Output {
+        Matrix(array::from_fn(|i| array::from_fn(|j| self.0[i][j] / rhs)))
+    }
+}
+
+impl<const M: usize, const N: usize, T> Neg for Matrix<M, N, T>
+where
+    T: Neg<Output = T> + Copy,
+{
+    type Output = Matrix<M, N, T>;
+
+    fn neg(mut self) -> Self::Output {
+        for row in &mut self.0 {
+            for val in row {
+                *val = val.neg();
+            }
+        }
+
+        self
+    }
+}
+
+impl<const M: usize, const N: usize, T> Sum for Matrix<M, N, T>
+where
+    Self: Add<Self, Output = Self> + Default,
+{
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Default::default(), |a, b| a + b)
+    }
+}
+
+impl<const M: usize, const N: usize, T> Index<usize> for Matrix<M, N, T> {
+    type Output = [T; N];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl<const M: usize, const N: usize, T> IndexMut<usize> for Matrix<M, N, T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn add() {
+        assert_eq!(
+            Matrix([[1, 2], [3, 4]]) + Matrix([[1, 2], [3, 4]]),
+            Matrix([[2, 4], [6, 8]])
+        )
+    }
+
+    #[test]
+    fn sub() {
+        assert_eq!(
+            Matrix([[1, 2], [3, 4]]) - Matrix([[1, 2], [3, 4]]),
+            Matrix([[0, 0], [0, 0]])
+        )
+    }
+
+    #[test]
+    fn mul() {
+        assert_eq!(Matrix([[1, 2], [3, 4]]) * 3, Matrix([[3, 6], [9, 12]]))
+    }
+
+    #[test]
+    fn div() {
+        assert_eq!(Matrix([[2, 4], [6, 8]]) / 2, Matrix([[1, 2], [3, 4]]))
+    }
+
+    #[test]
+    fn neg() {
+        assert_eq!(-Matrix([[2, 4], [6, 8]]), Matrix([[-2, -4], [-6, -8]]))
+    }
+}

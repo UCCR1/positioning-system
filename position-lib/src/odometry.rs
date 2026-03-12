@@ -1,11 +1,8 @@
 use core::array;
 
-use uom::{
-    ConstZero,
-    si::f32::{Angle, Length, Ratio},
-};
+use uom::si::f32::{Angle, Length, Ratio};
 
-use crate::vector::{Vector, real::UnitVector};
+use crate::linalg::{matrix::Matrix, vector::Vector, vector::real::UnitVector};
 
 #[derive(Copy, Clone)]
 pub struct TrackingWheel {
@@ -16,7 +13,7 @@ pub struct TrackingWheel {
 pub struct Odometry<const N: usize> {
     tracking_wheels: [TrackingWheel; N],
 
-    weighting_matrix: [[Ratio; 2]; N],
+    weighting_matrix: Matrix<N, 2, Ratio>,
 
     global_position: Vector<2, Length>,
     global_angle: Angle,
@@ -24,10 +21,9 @@ pub struct Odometry<const N: usize> {
 
 impl<const N: usize> Odometry<N> {
     pub fn new(wheels: [TrackingWheel; N]) -> Self {
-        let ddt: Vector<2, Vector<2, Ratio>> = wheels
-            .iter()
-            .map(|v| v.direction.product(*v.direction))
-            .sum();
+        let d = Matrix::from(wheels.map(|wheel| wheel.direction.to_array())).transpose();
+
+        let ddt = d.product(d.transpose());
 
         assert!(
             ddt.det().abs().value > 1e-6,
@@ -36,15 +32,7 @@ impl<const N: usize> Odometry<N> {
 
         let ddt_inv = ddt.inv();
 
-        let weighting_matrix = wheels.map(|wheel| {
-            let dx = wheel.direction.x();
-            let dy = wheel.direction.y();
-
-            [
-                dx * ddt_inv[0][0] + dy * ddt_inv[1][0],
-                dx * ddt_inv[0][1] + dy * ddt_inv[1][1],
-            ]
-        });
+        let weighting_matrix = d.transpose().product(ddt_inv);
 
         Self {
             tracking_wheels: wheels,
@@ -59,27 +47,23 @@ impl<const N: usize> Odometry<N> {
             let travel = wheel_travel[i];
             let position = self.tracking_wheels[i];
 
-            let measured_travel: Vector<2, Length> = *position.direction * travel;
+            let measured_travel = *position.direction * travel;
 
-            let rotation_travel: Vector<2, Length> = position.location.perp() * angle_change;
+            let rotation_travel = position.location.perp() * angle_change;
 
-            let actual_travel: Vector<2, Length> =
-                measured_travel - rotation_travel.project(measured_travel);
+            let actual_travel = measured_travel - rotation_travel.project(measured_travel);
 
             actual_travel.length()
         });
 
-        let mut dx = Length::ZERO;
-        let mut dy = Length::ZERO;
+        let true_travel = self
+            .weighting_matrix
+            .transpose()
+            .product(travels.into())
+            .rotate(self.global_angle)
+            .bend(angle_change);
 
-        for (i, [wx, wy]) in self.weighting_matrix.iter().enumerate() {
-            dx += *wx * travels[i];
-            dy += *wy * travels[i];
-        }
-
-        let true_travel = Vector([dx, dy]).bend(angle_change);
-
-        self.global_position = self.global_position + true_travel; // TODO: rotate true_travel by global_angle
+        self.global_position = self.global_position + true_travel;
         self.global_angle += angle_change;
     }
 }
@@ -98,8 +82,9 @@ mod test {
     };
 
     use crate::{
+        linalg::vector::real::UnitVector,
         odometry::{Odometry, TrackingWheel},
-        vector::{Vector, real::UnitVector},
+        vector,
     };
 
     use approx::assert_relative_eq;
@@ -110,11 +95,11 @@ mod test {
         let wheels = [
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::ZERO),
-                location: Vector([Length::ZERO, Length::ZERO]),
+                location: vector![Length::ZERO, Length::ZERO],
             },
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-                location: Vector([Length::ZERO, Length::ZERO]),
+                location: vector![Length::ZERO, Length::ZERO],
             },
         ];
 
@@ -153,17 +138,17 @@ mod test {
         let wheels = [
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-                location: Vector([
+                location: vector![
                     -Length::new::<meter>(FRAC_1_SQRT_2),
-                    Length::new::<meter>(FRAC_1_SQRT_2),
-                ]),
+                    Length::new::<meter>(FRAC_1_SQRT_2)
+                ],
             },
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(135.0)),
-                location: Vector([
+                location: vector![
                     Length::new::<meter>(FRAC_1_SQRT_2),
-                    Length::new::<meter>(FRAC_1_SQRT_2),
-                ]),
+                    Length::new::<meter>(FRAC_1_SQRT_2)
+                ],
             },
         ];
 
@@ -190,5 +175,38 @@ mod test {
         assert_relative_eq!(odom.global_position.x().value, 0.0);
         assert_relative_eq!(odom.global_position.y().value, 1.0);
         assert_relative_eq!(odom.global_angle.value, 1.0);
+    }
+
+    #[test]
+    fn dual_axes_system() {
+        let wheels = [
+            TrackingWheel {
+                direction: UnitVector::<2, _>::up(),
+                location: Default::default(),
+            },
+            TrackingWheel {
+                direction: UnitVector::<2, _>::right(),
+                location: Default::default(),
+            },
+        ];
+
+        let mut odom = Odometry::new(wheels);
+
+        odom.update(Default::default(), Angle::HALF_TURN);
+
+        odom.update([Length::new::<meter>(1.0), Length::ZERO], Angle::ZERO);
+
+        assert_relative_eq!(odom.global_position.x().value, 0.0);
+        assert_relative_eq!(odom.global_position.y().value, -1.0); // Check that the robot drives backwards
+        assert_relative_eq!(odom.global_angle.value, Angle::HALF_TURN.value);
+    }
+
+    #[test]
+    #[should_panic]
+    fn unsolvable_wheels() {
+        Odometry::new([TrackingWheel {
+            direction: UnitVector::<2, _>::up(),
+            location: Default::default(),
+        }]);
     }
 }

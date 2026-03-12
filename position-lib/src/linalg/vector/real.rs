@@ -5,6 +5,8 @@ use uom::{
 
 use super::Vector;
 
+use crate::vector;
+
 use core::{
     iter::Sum,
     ops::{Deref, DerefMut, Div, Mul, Sub},
@@ -18,7 +20,7 @@ pub struct UnitVector<const N: usize, T>(Vector<N, T>);
 
 impl UnitVector<2, Ratio> {
     pub fn from_angle(angle: Angle) -> Self {
-        Self(Vector([
+        Self(vector![
             Ratio {
                 value: libm::cosf(angle.value),
                 ..Default::default()
@@ -26,8 +28,63 @@ impl UnitVector<2, Ratio> {
             Ratio {
                 value: libm::sinf(angle.value),
                 ..Default::default()
+            }
+        ])
+    }
+
+    pub fn right() -> Self {
+        Self(vector![
+            Ratio {
+                value: 1.0,
+                ..Default::default()
             },
-        ]))
+            Ratio::ZERO
+        ])
+    }
+
+    pub fn up() -> Self {
+        Self(vector![
+            Ratio::ZERO,
+            Ratio {
+                value: 1.0,
+                ..Default::default()
+            }
+        ])
+    }
+}
+
+impl UnitVector<3, Ratio> {
+    pub fn right() -> Self {
+        Self(vector![
+            Ratio {
+                value: 1.0,
+                ..Default::default()
+            },
+            Ratio::ZERO,
+            Ratio::ZERO
+        ])
+    }
+
+    pub fn up() -> Self {
+        Self(vector![
+            Ratio::ZERO,
+            Ratio {
+                value: 1.0,
+                ..Default::default()
+            },
+            Ratio::ZERO
+        ])
+    }
+
+    pub fn forward() -> Self {
+        Self(vector![
+            Ratio::ZERO,
+            Ratio::ZERO,
+            Ratio {
+                value: 1.0,
+                ..Default::default()
+            }
+        ])
     }
 }
 
@@ -83,7 +140,8 @@ impl Root for Ratio {
 
 impl<const N: usize, T, S, R> Vector<N, T>
 where
-    T: Copy + Mul<T, Output = S> + Sub<Output = T> + Div<Output = R>,
+    Self: Sub<Self, Output = Self>,
+    T: Copy + Mul<T, Output = S> + Div<Output = R> + Default,
     S: Sum + Root<Root = T>,
 {
     pub fn length(self) -> T {
@@ -105,20 +163,20 @@ impl Vector<2, Length> {
             return self;
         }
 
-        Self::new(
+        vector![
             libm::sinf(angle.value) * self.x() / angle
                 - (1.0 - libm::cosf(angle.value)) * self.y() / angle,
             libm::sinf(angle.value) * self.y() / angle
-                + (1.0 - libm::cosf(angle.value)) * self.x() / angle,
-        )
+                + (1.0 - libm::cosf(angle.value)) * self.x() / angle
+        ]
     }
 }
 
 #[macro_export]
 macro_rules! real_vector {
     ($quantity:ident::$unit:ident, $($val:expr),*) => {
-        paste::paste! {
-            $crate::vector::Vector([$(uom::si::f32::$quantity::new::<uom::si::[<$quantity:lower>]::$unit>($val),)*])
+        $crate::paste::paste! {
+            $crate::vector![$(uom::si::f32::$quantity::new::<uom::si::[<$quantity:lower>]::$unit>($val)),*]
         }
     };
 }
@@ -134,7 +192,7 @@ mod tests {
 
     #[test]
     fn normalize() {
-        let a = Vector([1.0f32, 1.0]).normalized();
+        let a = vector![1.0f32, 1.0].normalized();
 
         assert_relative_eq!(a.length(), 1.0);
 

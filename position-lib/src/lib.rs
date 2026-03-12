@@ -1,4 +1,6 @@
 #![no_std]
 
+pub mod linalg;
 pub mod odometry;
-pub mod vector;
+
+pub extern crate paste;
