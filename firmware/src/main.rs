@@ -27,6 +27,7 @@ use uom::{
     },
 };
 
+#[macro_use]
 mod encoder;
 
 #[panic_handler]
@@ -49,12 +50,12 @@ fn main() -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_80MHz);
     let _peripherals = esp_hal::init(config);
 
-    let (left_encoder, right_encoder) = encoder::init_encoders(
+    declare_encoders!(encoder_module, [0, 1]);
+
+    let (left_encoder, right_encoder) = encoder_module::init(
         _peripherals.PCNT,
-        [
-            (_peripherals.GPIO14.into(), _peripherals.GPIO15.into()),
-            (_peripherals.GPIO2.into(), _peripherals.GPIO3.into()),
-        ],
+        (_peripherals.GPIO14.into(), _peripherals.GPIO15.into()),
+        (_peripherals.GPIO2.into(), _peripherals.GPIO3.into()),
     );
 
     let mut odometry = Odometry::new([
