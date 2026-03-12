@@ -1,10 +1,18 @@
 use core::sync::atomic::{AtomicI32, Ordering};
 
-use esp_hal::peripherals::PCNT;
+use esp_hal::{
+    gpio::interconnect::InputSignal,
+    pcnt::{
+        channel::{CtrlMode, EdgeMode},
+        unit::Unit,
+    },
+    peripherals::PCNT,
+};
 use uom::si::{angle::revolution, f32::Angle};
 
-// It is assumed that the encoders are configured to maximum precision, which is 2048PPR
-// Using dual channel quadrature encoding means we multiply this by 4 to get total ticks
+// It is assumed that the encoders are configured to maximum precision, which is
+// 2048PPR Using dual channel quadrature encoding means we multiply this by 4 to
+// get total ticks
 const QUADRATURE_RESOLUTION: u32 = 2048;
 const TICKS_PER_REVOLUTION: u32 = QUADRATURE_RESOLUTION * 4;
 
@@ -32,6 +40,35 @@ impl QuadratureEncoder {
     }
 }
 
+pub const THRESHOLD: i16 = i16::MAX / 2;
+
+pub fn configure_quadrature<const U: usize>(
+    unit: &Unit<'static, U>,
+    pin_a: InputSignal,
+    pin_b: InputSignal,
+) {
+    unit.set_high_limit(Some(THRESHOLD)).unwrap();
+    unit.set_low_limit(Some(-THRESHOLD)).unwrap();
+    unit.set_filter(Some(1023)).unwrap();
+    unit.clear();
+
+    let ch0 = &unit.channel0;
+    ch0.set_ctrl_signal(pin_a.clone());
+    ch0.set_edge_signal(pin_b.clone());
+    ch0.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
+    ch0.set_input_mode(EdgeMode::Increment, EdgeMode::Decrement);
+
+    // Use dual channel counter to double number of pulses
+    let ch1 = &unit.channel1;
+    ch1.set_ctrl_signal(pin_b);
+    ch1.set_edge_signal(pin_a);
+    ch1.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
+    ch1.set_input_mode(EdgeMode::Decrement, EdgeMode::Increment);
+
+    unit.listen();
+    unit.resume();
+}
+
 macro_rules! repeat {
     ($rep:literal, $type:ty) => {
         $type
@@ -46,18 +83,18 @@ macro_rules! declare_encoders {
                 use core::{cell::RefCell, sync::atomic::{AtomicI32, Ordering}};
                 use esp_hal::{
                     handler,
-                    pcnt::{unit::Unit, Pcnt, channel::{CtrlMode, EdgeMode}},
+                    pcnt::{unit::Unit, Pcnt},
                     peripherals::PCNT,
-                    gpio::{AnyPin, interconnect::InputSignal, InputConfig, Pull, Input},
+                    gpio::{AnyPin, InputConfig, Pull, Input},
                     interrupt::Priority
                 };
+
+                use crate::encoder::{THRESHOLD, QuadratureEncoder};
 
                 $(
                     static [<UNIT $unit>]: Mutex<RefCell<Option<Unit<'static, $unit>>>> = Mutex::new(RefCell::new(None));
                     static [<VALUE $unit>]: AtomicI32 = AtomicI32::new(0);
                 )+
-
-                const THRESHOLD: i16 = i16::MAX / 2;
 
                 #[handler(priority = Priority::Priority2)]
                 fn interrupt_handler() {
@@ -80,37 +117,10 @@ macro_rules! declare_encoders {
                     });
                 }
 
-                fn configure_quadrature<const U: usize>(
-                    unit: &Unit<'static, U>,
-                    pin_a: InputSignal,
-                    pin_b: InputSignal,
-                ) {
-                    unit.set_high_limit(Some(THRESHOLD)).unwrap();
-                    unit.set_low_limit(Some(-THRESHOLD)).unwrap();
-                    unit.set_filter(Some(1023)).unwrap();
-                    unit.clear();
-
-                    let ch0 = &unit.channel0;
-                    ch0.set_ctrl_signal(pin_a.clone());
-                    ch0.set_edge_signal(pin_b.clone());
-                    ch0.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
-                    ch0.set_input_mode(EdgeMode::Increment, EdgeMode::Decrement);
-
-                    // Use dual channel counter to double number of pulses
-                    let ch1 = &unit.channel1;
-                    ch1.set_ctrl_signal(pin_b);
-                    ch1.set_edge_signal(pin_a);
-                    ch1.set_ctrl_mode(CtrlMode::Reverse, CtrlMode::Keep);
-                    ch1.set_input_mode(EdgeMode::Decrement, EdgeMode::Increment);
-
-                    unit.listen();
-                    unit.resume();
-                }
-
                 pub fn init(
                     pcnt_peripheral: PCNT<'static>,
                     $([<unit_ $unit _pins>]: (AnyPin<'static>, AnyPin<'static>),)+
-                ) -> ($(repeat!($unit, crate::encoder::QuadratureEncoder),)+) {
+                ) -> ($(repeat!($unit, QuadratureEncoder),)+) {
                     let mut pcnt = Pcnt::new(pcnt_peripheral);
 
                     pcnt.set_interrupt_handler(interrupt_handler);
@@ -118,13 +128,13 @@ macro_rules! declare_encoders {
                     let config = InputConfig::default().with_pull(Pull::Up);
 
                     $(
-                        configure_quadrature(
+                        crate::encoder::configure_quadrature(
                             &pcnt.[<unit $unit>],
                             Input::new([<unit_ $unit _pins>].0, config).into(),
                             Input::new([<unit_ $unit _pins>].1, config).into()
                         );
 
-                        let [<enc $unit>] = crate::encoder::QuadratureEncoder::new(
+                        let [<enc $unit>] = QuadratureEncoder::new(
                             $unit,
                             &[<VALUE $unit>],
                         );
