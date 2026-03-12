@@ -1,8 +1,11 @@
 pub mod real;
 
+use core::{
+    iter::Sum,
+    ops::{Add, Div, Mul, Neg, Sub},
+};
+
 use super::matrix::Matrix;
-use core::iter::Sum;
-use core::ops::{Add, Div, Mul, Neg, Sub};
 
 pub type Vector<const M: usize, T> = Matrix<M, 1, T>;
 

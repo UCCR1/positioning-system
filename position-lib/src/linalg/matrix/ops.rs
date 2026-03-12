@@ -1,6 +1,8 @@
-use core::array;
-use core::iter::Sum;
-use core::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
+use core::{
+    array,
+    iter::Sum,
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign},
+};
 
 use super::Matrix;
 

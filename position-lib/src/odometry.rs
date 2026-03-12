@@ -2,7 +2,10 @@ use core::array;
 
 use uom::si::f32::{Angle, Length, Ratio};
 
-use crate::linalg::{matrix::Matrix, vector::Vector, vector::real::UnitVector};
+use crate::linalg::{
+    matrix::Matrix,
+    vector::{Vector, real::UnitVector},
+};
 
 #[derive(Copy, Clone)]
 pub struct TrackingWheel {
@@ -72,6 +75,7 @@ impl<const N: usize> Odometry<N> {
 mod test {
     use core::f32::consts::FRAC_1_SQRT_2;
 
+    use approx::assert_relative_eq;
     use uom::{
         ConstZero,
         si::{
@@ -86,8 +90,6 @@ mod test {
         odometry::{Odometry, TrackingWheel},
         vector,
     };
-
-    use approx::assert_relative_eq;
 
     #[test]
     fn horiz_and_diag_system() {

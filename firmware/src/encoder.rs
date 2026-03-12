@@ -1,4 +1,5 @@
 use core::sync::atomic::{AtomicI32, Ordering};
+
 use esp_hal::peripherals::PCNT;
 use uom::si::{angle::revolution, f32::Angle};
 

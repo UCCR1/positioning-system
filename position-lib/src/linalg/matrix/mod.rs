@@ -1,6 +1,7 @@
-use core::array;
-
-use core::ops::{AddAssign, Div, Mul, Neg, Sub};
+use core::{
+    array,
+    ops::{AddAssign, Div, Mul, Neg, Sub},
+};
 
 use uom::si::f32::Angle;
 
@@ -104,13 +105,11 @@ impl<const N: usize, T> Matrix<2, N, T> {
 mod test {
     use core::f32::consts::FRAC_1_SQRT_2;
 
+    use approx::assert_relative_eq;
     use uom::si::angle::degree;
 
-    use crate::vector;
-
     use super::*;
-
-    use approx::assert_relative_eq;
+    use crate::vector;
 
     #[test]
     fn product() {

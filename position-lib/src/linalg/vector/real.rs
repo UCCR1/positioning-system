@@ -1,16 +1,15 @@
+use core::{
+    iter::Sum,
+    ops::{Deref, DerefMut, Div, Mul, Sub},
+};
+
 use uom::{
     ConstZero,
     si::f32::{Angle, Area, Length, Ratio},
 };
 
 use super::Vector;
-
 use crate::vector;
-
-use core::{
-    iter::Sum,
-    ops::{Deref, DerefMut, Div, Mul, Sub},
-};
 
 /// A struct representing a Vector of length 1 (approximately).
 ///
@@ -185,10 +184,10 @@ macro_rules! real_vector {
 mod tests {
     use core::f32::consts::FRAC_1_SQRT_2;
 
-    use super::*;
-
     use approx::assert_relative_eq;
     use uom::si::{angle::degree, f32::Length, length::kilometer, ratio::ratio};
+
+    use super::*;
 
     #[test]
     fn normalize() {

@@ -1,15 +1,14 @@
-use super::crc::get_crc_checksum;
 use alloc::vec::Vec;
-use position_lib::linalg::vector::Vector;
-use zerocopy::FromBytes;
 
-use position_lib::real_vector;
-
+use position_lib::{linalg::vector::Vector, real_vector};
 use uom::si::{
     angle::degree,
     angular_velocity::degree_per_second,
     f32::{Angle, AngularVelocity, Length},
 };
+use zerocopy::FromBytes;
+
+use super::crc::get_crc_checksum;
 
 const NUM_POINTS: usize = 12;
 

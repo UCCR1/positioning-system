@@ -1,10 +1,9 @@
 use core::array;
 
 use position_lib::odometry::{Odometry, TrackingWheel};
-
 use uom::{
-    ConstZero,
     si::f32::{Angle, Length},
+    ConstZero,
 };
 
 use crate::encoder::QuadratureEncoder;

@@ -1,12 +1,13 @@
-use crate::line_seg::LineSeg;
 use alloc::vec::Vec;
+
 use libm::{cosf, sinf};
 use position_lib::linalg::vector::Vector;
-
 use uom::si::{
     f32::{Angle, Length},
     length::meter,
 };
+
+use crate::line_seg::LineSeg;
 
 pub struct FieldMap {
     field: Vec<LineSeg>,
