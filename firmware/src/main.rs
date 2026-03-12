@@ -19,10 +19,11 @@ use uom::si::{
     length::inch,
 };
 
-use crate::odometry::OdometryTask;
+use crate::{lidar::Lidar, odometry::OdometryTask};
 
 #[macro_use]
 mod encoder;
+mod lidar;
 mod odometry;
 
 #[panic_handler]
@@ -68,10 +69,17 @@ fn main() -> ! {
         Length::new::<inch>(2.0),
     );
 
+    let mut lidar = Lidar::new(
+        _peripherals.UART1.into(),
+        _peripherals.GPIO18.into(),
+        _peripherals.GPIO4.into(),
+    );
+
     loop {
         let delay_start = Instant::now();
 
         odometry.update();
+        lidar.update().unwrap();
 
         while delay_start.elapsed() < Duration::from_millis(10) {}
     }

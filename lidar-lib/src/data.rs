@@ -1,6 +1,6 @@
-use alloc::vec::Vec;
-
+use heapless::Vec;
 use position_lib::{linalg::vector::Vector, real_vector};
+use thiserror::Error;
 use uom::si::{
     angle::degree,
     angular_velocity::degree_per_second,
@@ -32,24 +32,31 @@ pub struct Packet {
     crc8: u8,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub struct LidarPoint(pub Vector<2, Length>, pub u8);
 
 pub struct LidarData {
     pub speed: AngularVelocity,
     pub start_angle: Angle,
     pub end_angle: Angle,
-    pub points: Vec<LidarPoint>,
+    pub points: Vec<LidarPoint, NUM_POINTS>,
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum LidarParseError {
+    #[error("Invalid packet header")]
     InvalidHeader,
-    CRCError { source: u8, calculated: u8 },
+    #[error("Failed CRC Check, expected {expected}, found {calculated}")]
+    CRCError { expected: u8, calculated: u8 },
+    #[error("Invalid packet size")]
     SizeError,
 }
 
+pub const PACKET_HEADER: [u8; 2] = [0x54, 0x2C];
+pub const PACKET_SIZE: usize = size_of::<Packet>();
+
 pub fn parse_packet(packet: &[u8]) -> Result<LidarData, LidarParseError> {
-    if packet[0] != 0x54 || packet[1] != 0x2C {
+    if !packet.starts_with(&PACKET_HEADER) {
         return Err(LidarParseError::InvalidHeader);
     }
 
@@ -59,7 +66,7 @@ pub fn parse_packet(packet: &[u8]) -> Result<LidarData, LidarParseError> {
 
     if packet_crc != data.crc8 {
         return Err(LidarParseError::CRCError {
-            source: data.crc8,
+            expected: data.crc8,
             calculated: packet_crc,
         });
     }
@@ -95,7 +102,7 @@ mod test {
 
     #[test]
     fn test() {
-        const TEST_PACKET: [u8; size_of::<Packet>()] = [
+        const TEST_PACKET: [u8; PACKET_SIZE] = [
             0x54, 0x2C, 0x68, 0x08, 0xAB, 0x7E, 0xE0, 0x00, 0xE4, 0xDC, 0x00, 0xE2, 0xD9, 0x00,
             0xE5, 0xD5, 0x00, 0xE3, 0xD3, 0x00, 0xE4, 0xD0, 0x00, 0xE9, 0xCD, 0x00, 0xE4, 0xCA,
             0x00, 0xE2, 0xC7, 0x00, 0xE9, 0xC5, 0x00, 0xE5, 0xC2, 0x00, 0xE5, 0xC0, 0x00, 0xE5,

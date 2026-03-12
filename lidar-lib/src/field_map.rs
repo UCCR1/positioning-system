@@ -1,5 +1,4 @@
-use alloc::vec::Vec;
-
+use heapless::Vec;
 use libm::{cosf, sinf};
 use position_lib::linalg::vector::Vector;
 use uom::si::{
@@ -10,7 +9,7 @@ use uom::si::{
 use crate::line_seg::LineSeg;
 
 pub struct FieldMap {
-    field: Vec<LineSeg>,
+    field: Vec<LineSeg, 100>,
 }
 
 impl FieldMap {

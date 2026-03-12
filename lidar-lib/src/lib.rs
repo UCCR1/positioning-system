@@ -1,5 +1,4 @@
 #![no_std]
-extern crate alloc;
 
 pub(crate) mod crc;
 pub mod data;
