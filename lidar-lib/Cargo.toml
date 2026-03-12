@@ -7,6 +7,7 @@ edition = "2024"
 libm = "0.2.16"
 uom = { version = "0.38.0", default-features = false, features=["f32", "si"]}
 position-lib = { path="../position-lib" }
+zerocopy = { version = "0.8.42", features=["derive"]}
 
 [dev-dependencies]
 approx = "0.5.1"
