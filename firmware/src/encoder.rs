@@ -15,6 +15,7 @@ use esp_hal::{
     },
     peripherals::PCNT,
 };
+use uom::si::{angle::revolution, f32::Angle};
 
 const THRESHOLD: i16 = i16::MAX / 2;
 
@@ -23,9 +24,18 @@ pub struct QuadratureEncoder<const U: usize> {
     offset: &'static AtomicI32,
 }
 
+// It is assumed that the encoders are configured to maximum precision, which is 2048PPR
+// Using dual channel quadrature encoding means we multiply this by 4 to get total ticks
+const QUADRATURE_RESOLUTION: u32 = 2048;
+const TICKS_PER_REVOLUTION: u32 = QUADRATURE_RESOLUTION * 4;
+
 impl<const NUM: usize> QuadratureEncoder<NUM> {
-    pub fn position(&self) -> i32 {
+    pub fn ticks(&self) -> i32 {
         self.counter.get() as i32 + self.offset.load(Ordering::SeqCst)
+    }
+
+    pub fn position(&self) -> Angle {
+        Angle::new::<revolution>(self.ticks() as f32 / TICKS_PER_REVOLUTION as f32)
     }
 }
 
