@@ -1,3 +1,42 @@
+use core::sync::atomic::{AtomicI32, Ordering};
+use esp_hal::peripherals::PCNT;
+use uom::si::{angle::revolution, f32::Angle};
+
+// It is assumed that the encoders are configured to maximum precision, which is 2048PPR
+// Using dual channel quadrature encoding means we multiply this by 4 to get total ticks
+const QUADRATURE_RESOLUTION: u32 = 2048;
+const TICKS_PER_REVOLUTION: u32 = QUADRATURE_RESOLUTION * 4;
+
+pub struct QuadratureEncoder {
+    counter_num: usize,
+    offset: &'static AtomicI32,
+}
+
+impl QuadratureEncoder {
+    pub fn new(num: usize, offset: &'static AtomicI32) -> Self {
+        Self {
+            counter_num: num,
+            offset,
+        }
+    }
+
+    pub fn ticks(&self) -> i32 {
+        let pcnt = PCNT::regs();
+
+        pcnt.u_cnt(self.counter_num).read().cnt().bits() as i32 + self.offset.load(Ordering::SeqCst)
+    }
+
+    pub fn position(&self) -> Angle {
+        Angle::new::<revolution>(self.ticks() as f32 / TICKS_PER_REVOLUTION as f32)
+    }
+}
+
+macro_rules! repeat {
+    ($rep:literal, $type:ty) => {
+        $type
+    };
+}
+
 macro_rules! declare_encoders {
     ($mod_name:ident, [$($unit:literal),+]) => {
         paste::paste! {
@@ -11,30 +50,6 @@ macro_rules! declare_encoders {
                     gpio::{AnyPin, interconnect::InputSignal, InputConfig, Pull, Input},
                     interrupt::Priority
                 };
-
-                use esp_hal::pcnt::unit::Counter;
-                use uom::si::{angle::revolution, f32::Angle};
-
-
-                // It is assumed that the encoders are configured to maximum precision, which is 2048PPR
-                // Using dual channel quadrature encoding means we multiply this by 4 to get total ticks
-                const QUADRATURE_RESOLUTION: u32 = 2048;
-                const TICKS_PER_REVOLUTION: u32 = QUADRATURE_RESOLUTION * 4;
-
-                pub struct QuadratureEncoder<const U: usize> {
-                    counter: Counter<'static, U>,
-                    offset: &'static AtomicI32,
-                }
-
-                impl<const NUM: usize> QuadratureEncoder<NUM> {
-                    pub fn ticks(&self) -> i32 {
-                        self.counter.get() as i32 + self.offset.load(Ordering::SeqCst)
-                    }
-
-                    pub fn position(&self) -> Angle {
-                        Angle::new::<revolution>(self.ticks() as f32 / TICKS_PER_REVOLUTION as f32)
-                    }
-                }
 
                 $(
                     static [<UNIT $unit>]: Mutex<RefCell<Option<Unit<'static, $unit>>>> = Mutex::new(RefCell::new(None));
@@ -94,7 +109,7 @@ macro_rules! declare_encoders {
                 pub fn init(
                     pcnt_peripheral: PCNT<'static>,
                     $([<unit_ $unit _pins>]: (AnyPin<'static>, AnyPin<'static>),)+
-                ) -> ($(QuadratureEncoder<$unit>,)+) {
+                ) -> ($(repeat!($unit, crate::encoder::QuadratureEncoder),)+) {
                     let mut pcnt = Pcnt::new(pcnt_peripheral);
 
                     pcnt.set_interrupt_handler(interrupt_handler);
@@ -108,10 +123,10 @@ macro_rules! declare_encoders {
                             Input::new([<unit_ $unit _pins>].1, config).into()
                         );
 
-                        let [<enc $unit>] = QuadratureEncoder {
-                            counter: pcnt.[<unit $unit>].counter.clone(),
-                            offset: &[<VALUE $unit>],
-                        };
+                        let [<enc $unit>] = crate::encoder::QuadratureEncoder::new(
+                            $unit,
+                            &[<VALUE $unit>],
+                        );
 
                         critical_section::with(|cs| [<UNIT $unit>].borrow_ref_mut(cs).replace(pcnt.[<unit $unit>]));
                     )+

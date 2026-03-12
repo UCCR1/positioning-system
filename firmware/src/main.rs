@@ -13,22 +13,18 @@ use esp_hal::{
     time::{Duration, Instant},
 };
 
-use position_lib::{
-    linalg::vector::real::UnitVector,
-    odometry::{Odometry, TrackingWheel},
-    real_vector,
+use position_lib::{linalg::vector::real::UnitVector, odometry::TrackingWheel, real_vector};
+use uom::si::{
+    angle::degree,
+    f32::{Angle, Length},
+    length::inch,
 };
-use uom::{
-    ConstZero,
-    si::{
-        angle::degree,
-        f32::{Angle, Length},
-        length::inch,
-    },
-};
+
+use crate::odometry::OdometryTask;
 
 #[macro_use]
 mod encoder;
+mod odometry;
 
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
@@ -58,35 +54,25 @@ fn main() -> ! {
         (_peripherals.GPIO2.into(), _peripherals.GPIO3.into()),
     );
 
-    let mut odometry = Odometry::new([
-        TrackingWheel {
-            direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-            location: real_vector!(Length::millimeter, -20.0, 20.0), // TODO: Determine this
-        },
-        TrackingWheel {
-            direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-            location: real_vector!(Length::millimeter, 20.0, 20.0), // TODO: Determine this
-        },
-    ]);
-
-    let wheel_radius = Length::new::<inch>(1.0);
-
-    let mut last_left_position = Angle::ZERO;
-    let mut last_right_position = Angle::ZERO;
+    let mut odometry = OdometryTask::new(
+        [left_encoder, right_encoder],
+        [
+            TrackingWheel {
+                direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
+                location: real_vector!(Length::millimeter, -20.0, 20.0), // TODO: Determine this
+            },
+            TrackingWheel {
+                direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
+                location: real_vector!(Length::millimeter, 20.0, 20.0), // TODO: Determine this
+            },
+        ],
+        Length::new::<inch>(2.0),
+    );
 
     loop {
         let delay_start = Instant::now();
 
-        let new_left_position = left_encoder.position();
-        let new_right_position = right_encoder.position();
-
-        let left_travel = (new_left_position - last_left_position) * wheel_radius;
-        let right_travel = (new_right_position - last_right_position) * wheel_radius;
-
-        odometry.update([left_travel, right_travel], Angle::ZERO);
-
-        last_left_position = new_left_position;
-        last_right_position = new_right_position;
+        odometry.update();
 
         while delay_start.elapsed() < Duration::from_millis(10) {}
     }
