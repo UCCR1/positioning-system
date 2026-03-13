@@ -60,7 +60,7 @@ impl Root for f32 {
     type Root = f32;
 
     fn root(self) -> Self::Root {
-        self.sqrt()
+        num_traits::real::Real::sqrt(self)
     }
 }
 
@@ -68,7 +68,7 @@ impl Root for f64 {
     type Root = f64;
 
     fn root(self) -> Self::Root {
-        self.sqrt()
+        num_traits::real::Real::sqrt(self)
     }
 }
 
