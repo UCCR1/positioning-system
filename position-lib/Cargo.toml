@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 uom = { workspace = true }
 linalg = { path = "../linalg" }
+libm = { workspace = true }
+kalman_filters = "1.0.1"
 
 [dev-dependencies]
 approx = { version = "0.5.1", default-features = false }
