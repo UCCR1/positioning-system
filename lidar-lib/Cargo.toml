@@ -5,12 +5,10 @@ edition = "2024"
 
 [dependencies]
 uom = { workspace = true }
-position-lib = { path = "../position-lib" }
 linalg = { path = "../linalg" }
 zerocopy = { version = "0.8.42", features=["derive"] }
 thiserror = { workspace = true }
 heapless = { workspace = true }
-libm = { workspace = true }
 
 [dev-dependencies]
 approx = { version = "0.5.1", default-features = false }
