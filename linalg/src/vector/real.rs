@@ -146,10 +146,10 @@ impl Root for Ratio {
     }
 }
 
-impl<const N: usize, T, S, R> Vector<N, T>
+impl<const N: usize, T: Copy, S, R> Vector<N, T>
 where
     Self: Sub<Self, Output = Self>,
-    T: Copy + Mul<T, Output = S> + Div<Output = R> + Default,
+    T: Mul<T, Output = S> + Div<Output = R>,
     S: Sum + Root<Root = T>,
 {
     pub fn magnitude(self) -> T {

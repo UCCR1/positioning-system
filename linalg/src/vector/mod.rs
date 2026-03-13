@@ -5,6 +5,8 @@ use core::{
     ops::{Div, Mul, Neg, Sub},
 };
 
+use num_traits::Zero;
+
 use super::matrix::Matrix;
 
 pub type Vector<const M: usize, T> = Matrix<M, 1, T>;
@@ -24,30 +26,30 @@ impl<const N: usize, T> From<[T; N]> for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T> Vector<N, T> {
+impl<const N: usize, T: Copy> Vector<N, T> {
     pub fn to_array(self) -> [T; N] {
         self.0.map(|[x]| x)
     }
 
     pub fn dot<O>(self, rhs: Self) -> O
     where
-        T: Mul<T, Output = O> + Default + Copy,
+        T: Mul<T, Output = O>,
         O: Sum,
     {
         self.into_iter().zip(rhs).map(|(a, b)| a * b).sum()
     }
 
-    pub fn project<S, O>(self, target: Self) -> Vector<N, T>
+    pub fn project<S, O>(self, target: Self) -> Self
     where
-        T: Copy + Mul<T, Output = O> + Mul<S, Output = T> + Default,
+        Self: Zero,
+        T: Mul<T, Output = O> + Mul<S, Output = T>,
         S: Copy,
-        O: Div<O, Output = S> + Sum + Default + PartialEq,
+        O: Div<O, Output = S> + Sum + Zero,
     {
         let denom = target.dot(target);
 
-        // Crude zero check
-        if denom == Default::default() {
-            return Default::default();
+        if denom.is_zero() {
+            return Vector::zero();
         }
 
         target * (target.dot(self) / denom)
