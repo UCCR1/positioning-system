@@ -73,7 +73,7 @@ mod test {
     use approx::assert_relative_eq;
     use linalg::{vector, vector::real::UnitVector};
     use uom::{
-        ConstZero,
+        num_traits::ConstZero,
         si::{
             angle::{degree, radian},
             length::meter,
@@ -180,11 +180,11 @@ mod test {
     fn dual_axes_system() {
         let wheels = [
             TrackingWheel {
-                direction: UnitVector::<2, _>::up(),
+                direction: UnitVector::<2, _>::UP,
                 location: Default::default(),
             },
             TrackingWheel {
-                direction: UnitVector::<2, _>::right(),
+                direction: UnitVector::<2, _>::RIGHT,
                 location: Default::default(),
             },
         ];
@@ -204,7 +204,7 @@ mod test {
     #[should_panic]
     fn unsolvable_wheels() {
         Odometry::new([TrackingWheel {
-            direction: UnitVector::<2, _>::up(),
+            direction: UnitVector::<2, _>::UP,
             location: Default::default(),
         }]);
     }

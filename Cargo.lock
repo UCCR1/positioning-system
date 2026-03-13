@@ -325,7 +325,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 [[package]]
 name = "uom"
 version = "0.38.0"
-source = "git+https://github.com/UCCR1/uom#512ee51e63c3da6ad77c4502df990ab019816c42"
+source = "git+https://github.com/UCCR1/uom#06171841dbbc610bde64a2508ba1569fc7004000"
 dependencies = [
  "num-traits",
  "typenum",

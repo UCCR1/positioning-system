@@ -3,11 +3,8 @@ use core::{
     ops::{Deref, DerefMut, Div, Mul, Sub},
 };
 
-use num_traits::{One, Zero};
-use uom::{
-    ConstZero,
-    si::f32::{Angle, Area, Length, Ratio},
-};
+use num_traits::{ConstOne, ConstZero};
+use uom::si::f32::{Angle, Area, Length, Ratio};
 
 use super::Vector;
 use crate::vector;
@@ -25,28 +22,18 @@ impl UnitVector<2, Ratio> {
     }
 }
 
-impl<T: One + Zero> UnitVector<2, T> {
-    pub fn right() -> Self {
-        Self(vector![T::one(), T::zero()])
-    }
+impl<T: ConstOne + ConstZero> UnitVector<2, T> {
+    pub const RIGHT: Self = Self(vector![T::ONE, T::ZERO]);
 
-    pub fn up() -> Self {
-        Self(vector![T::zero(), T::one()])
-    }
+    pub const UP: Self = Self(vector![T::ZERO, T::ONE]);
 }
 
-impl<T: One + Zero> UnitVector<3, T> {
-    pub fn right() -> Self {
-        Self(vector![T::one(), T::zero(), T::zero()])
-    }
+impl<T: ConstOne + ConstZero> UnitVector<3, T> {
+    pub const RIGHT: Self = Self(vector![T::ONE, T::ZERO, T::ZERO]);
 
-    pub fn up() -> Self {
-        Self(vector![T::zero(), T::one(), T::zero()])
-    }
+    pub const UP: Self = Self(vector![T::ZERO, T::ONE, T::ZERO]);
 
-    pub fn forward() -> Self {
-        Self(vector![T::zero(), T::zero(), T::one()])
-    }
+    pub const FORWARD: Self = Self(vector![T::ZERO, T::ZERO, T::ONE]);
 }
 
 impl<const N: usize, T> Deref for UnitVector<N, T> {
@@ -123,8 +110,8 @@ impl Vector<2, Length> {
         }
 
         vector![
-            angle.sin() * self.x() / angle - (Ratio::one() - angle.cos()) * self.y() / angle,
-            angle.sin() * self.y() / angle + (Ratio::one() - angle.cos()) * self.x() / angle
+            angle.sin() * self.x() / angle - (Ratio::ONE - angle.cos()) * self.y() / angle,
+            angle.sin() * self.y() / angle + (Ratio::ONE - angle.cos()) * self.x() / angle
         ]
     }
 }

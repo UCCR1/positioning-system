@@ -117,7 +117,7 @@ impl<T> Vector<3, T> {
 #[macro_export]
 macro_rules! vector {
     [$($value:expr),*] => {
-        $crate::vector::Vector::from([$($value,)*])
+        $crate::matrix::Matrix([$([$value],)*])
     };
 }
 
