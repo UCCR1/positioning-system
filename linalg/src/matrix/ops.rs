@@ -1,7 +1,7 @@
 use core::{
     array,
     iter::Sum,
-    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign},
 };
 
 use super::Matrix;
@@ -119,6 +119,14 @@ impl<const M: usize, const N: usize, T> Index<usize> for Matrix<M, N, T> {
 impl<const M: usize, const N: usize, T> IndexMut<usize> for Matrix<M, N, T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.0[index]
+    }
+}
+
+impl<T> Deref for Matrix<1, 1, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0[0][0]
     }
 }
 

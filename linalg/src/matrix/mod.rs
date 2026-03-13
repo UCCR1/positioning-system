@@ -5,7 +5,10 @@ use core::{
 
 use uom::si::f32::Angle;
 
+use crate::vector::Vector;
+
 pub mod ops;
+pub mod solver;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Matrix<const M: usize, const N: usize, T>(pub [[T; N]; M]);
@@ -23,6 +26,20 @@ impl<const M: usize, const N: usize, T> From<[[T; N]; M]> for Matrix<M, N, T> {
 }
 
 impl<const M: usize, const N: usize, T> Matrix<M, N, T> {
+    pub fn from_cols(cols: [[T; M]; N]) -> Self
+    where
+        T: Copy,
+    {
+        Self(array::from_fn(|i| array::from_fn(|j| cols[j][i])))
+    }
+
+    pub fn from_col_vectors(cols: [Vector<M, T>; N]) -> Self
+    where
+        T: Copy,
+    {
+        Self::from_cols(cols.map(|col| col.to_array()))
+    }
+
     pub fn product<const B: usize, R, O>(self, rhs: Matrix<N, B, R>) -> Matrix<M, B, O>
     where
         T: Mul<R, Output = O> + Copy,

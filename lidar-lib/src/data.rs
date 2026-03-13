@@ -83,9 +83,9 @@ impl LidarData {
 
         let increment = angle_diff / (NUM_POINTS - 1) as f32;
 
-        let angles = (0..NUM_POINTS).map(|i| start_angle + i as f32 * increment);
+        let points = data.point.into_iter().enumerate().map(|(i, point)| {
+            let angle = start_angle + i as f32 * increment;
 
-        let points = angles.zip(data.point).map(|(angle, point)| {
             LidarPoint(
                 real_vector![Length::millimeter, 0.0, point.distance as f32].rotate(-angle),
                 point.intensity,

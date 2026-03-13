@@ -116,6 +116,14 @@ impl Root for f32 {
     }
 }
 
+impl Root for f64 {
+    type Root = f64;
+
+    fn sqrt(self) -> Self::Root {
+        libm::sqrt(self)
+    }
+}
+
 impl Root for Area {
     type Root = Length;
 
@@ -144,16 +152,12 @@ where
     T: Copy + Mul<T, Output = S> + Div<Output = R> + Default,
     S: Sum + Root<Root = T>,
 {
-    pub fn length(self) -> T {
+    pub fn magnitude(self) -> T {
         self.dot(self).sqrt()
     }
 
-    pub fn distance_to(self, target: Self) -> T {
-        (target - self).length()
-    }
-
     pub fn normalized(self) -> UnitVector<N, R> {
-        UnitVector(self / self.length())
+        UnitVector(self / self.magnitude())
     }
 }
 
@@ -194,7 +198,7 @@ mod tests {
     fn normalize() {
         let a = vector![1.0f32, 1.0].normalized();
 
-        assert_relative_eq!(a.length(), 1.0);
+        assert_relative_eq!(a.magnitude(), 1.0);
 
         assert_relative_eq!(a.x(), libm::sqrtf(2.0) / 2.0);
         assert_relative_eq!(a.y(), libm::sqrtf(2.0) / 2.0);
@@ -204,14 +208,17 @@ mod tests {
     fn length() {
         let vector = real_vector!(Length::kilometer, 3.0, 4.0);
 
-        assert_relative_eq!(vector.length().value, Length::new::<kilometer>(5.0).value);
+        assert_relative_eq!(
+            vector.magnitude().value,
+            Length::new::<kilometer>(5.0).value
+        );
     }
 
     #[test]
     fn from_angle() {
         let vector = UnitVector::from_angle(Angle::new::<degree>(135.0));
 
-        assert_relative_eq!(vector.length().value, Ratio::new::<ratio>(1.0).value);
+        assert_relative_eq!(vector.magnitude().value, Ratio::new::<ratio>(1.0).value);
         assert_relative_eq!(vector.x().value, Ratio::new::<ratio>(-FRAC_1_SQRT_2).value);
         assert_relative_eq!(vector.y().value, Ratio::new::<ratio>(FRAC_1_SQRT_2).value);
     }

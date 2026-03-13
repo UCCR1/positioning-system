@@ -1,20 +1,18 @@
 use heapless::Vec;
 use libm::{cosf, sinf};
-use linalg::vector::Vector;
+use linalg::{line::Line, vector::Vector};
 use uom::si::{
     f32::{Angle, Length},
     length::meter,
 };
 
-use crate::line_seg::LineSeg;
-
 pub struct FieldMap {
-    field: Vec<LineSeg, 100>,
+    field: Vec<Line<2, Length>, 100>,
 }
 
 impl FieldMap {
     pub fn intersect_pos(&self, pos: Vector<2, Length>, angle: Angle) -> Option<Vector<2, Length>> {
-        let sensor_lineseg = LineSeg(
+        let sensor_lineseg = Line(
             pos,
             [
                 pos.x() + Length::new::<meter>(1000.0) * sinf(angle.value),
@@ -25,7 +23,7 @@ impl FieldMap {
 
         self.field
             .iter()
-            .filter_map(|seg| seg.find_intersection(sensor_lineseg))
-            .min_by_key(|intersection| intersection.distance_to(pos).value.to_bits())
+            .filter_map(|seg| seg.intersection(sensor_lineseg))
+            .min_by_key(|intersection| Line(*intersection, pos).length().value.to_bits())
     }
 }

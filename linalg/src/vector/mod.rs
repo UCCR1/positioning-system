@@ -2,7 +2,7 @@ pub mod real;
 
 use core::{
     iter::Sum,
-    ops::{Add, Div, Mul, Neg, Sub},
+    ops::{Div, Mul, Neg, Sub},
 };
 
 use super::matrix::Matrix;
@@ -37,15 +37,6 @@ impl<const N: usize, T> Vector<N, T> {
         self.into_iter().zip(rhs).map(|(a, b)| a * b).sum()
     }
 
-    pub fn lerp<S>(self, target: Self, t: S) -> Self
-    where
-        Self: Add<Self, Output = Self> + Sub<Self, Output = Self>,
-        T: Mul<S, Output = T> + Copy,
-        S: Copy,
-    {
-        self + target * t - self * t
-    }
-
     pub fn project<S, O>(self, target: Self) -> Vector<N, T>
     where
         T: Copy + Mul<T, Output = O> + Mul<S, Output = T> + Default,
@@ -60,29 +51,6 @@ impl<const N: usize, T> Vector<N, T> {
         }
 
         target * (target.dot(self) / denom)
-    }
-
-    pub fn closest_point<S, O>(self, start: Self, end: Self) -> Self
-    where
-        Self: Sub<Self, Output = Self> + Add<Self, Output = Self>,
-        T: Copy + Mul<T, Output = O> + Mul<S, Output = T> + Default,
-        S: Copy,
-        O: Copy + Div<O, Output = S> + Sum + PartialOrd + Sub<O, Output = O>,
-    {
-        let v = end - start;
-        let d = self - start;
-
-        let cosine = v.dot(d);
-        let mag_square = v.dot(v);
-
-        // Crude Check for negativity
-        if cosine <= (cosine - cosine) {
-            return start;
-        } else if cosine >= mag_square {
-            return end;
-        }
-
-        start + v * (cosine / mag_square)
     }
 }
 
@@ -116,6 +84,16 @@ impl<T: Copy> Vector<3, T> {
 
     pub const fn z(self) -> T {
         self.0[2][0]
+    }
+}
+
+impl<T> Vector<2, T> {
+    pub fn cross<O>(self, rhs: Self) -> O
+    where
+        T: Copy + Mul<T, Output = O>,
+        O: Sub<O, Output = O>,
+    {
+        self.x() * rhs.y() - self.y() * rhs.x()
     }
 }
 
