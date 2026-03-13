@@ -4,11 +4,13 @@ use core::{
     ops::{Add, AddAssign, Deref, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign},
 };
 
+use num_traits::Zero;
+
 use super::Matrix;
 
-impl<const M: usize, const N: usize, T> AddAssign for Matrix<M, N, T>
+impl<const M: usize, const N: usize, T: Copy> AddAssign for Matrix<M, N, T>
 where
-    T: AddAssign + Copy,
+    T: AddAssign,
 {
     fn add_assign(&mut self, rhs: Self) {
         for i in 0..M {
@@ -19,9 +21,9 @@ where
     }
 }
 
-impl<const M: usize, const N: usize, T> SubAssign for Matrix<M, N, T>
+impl<const M: usize, const N: usize, T: Copy> SubAssign for Matrix<M, N, T>
 where
-    T: SubAssign + Copy,
+    T: SubAssign,
 {
     fn sub_assign(&mut self, rhs: Self) {
         for i in 0..M {
@@ -58,10 +60,9 @@ where
     }
 }
 
-impl<const M: usize, const N: usize, T, Rhs, O> Mul<Rhs> for Matrix<M, N, T>
+impl<const M: usize, const N: usize, T: Copy, Rhs: Copy, O> Mul<Rhs> for Matrix<M, N, T>
 where
-    T: Mul<Rhs, Output = O> + Copy,
-    Rhs: Copy,
+    T: Mul<Rhs, Output = O>,
 {
     type Output = Matrix<M, N, O>;
 
@@ -70,10 +71,9 @@ where
     }
 }
 
-impl<const M: usize, const N: usize, T, Rhs, O> Div<Rhs> for Matrix<M, N, T>
+impl<const M: usize, const N: usize, T: Copy, Rhs: Copy, O> Div<Rhs> for Matrix<M, N, T>
 where
-    T: Div<Rhs, Output = O> + Copy,
-    Rhs: Copy,
+    T: Div<Rhs, Output = O>,
 {
     type Output = Matrix<M, N, O>;
 
@@ -82,9 +82,9 @@ where
     }
 }
 
-impl<const M: usize, const N: usize, T> Neg for Matrix<M, N, T>
+impl<const M: usize, const N: usize, T: Copy> Neg for Matrix<M, N, T>
 where
-    T: Neg<Output = T> + Copy,
+    T: Neg<Output = T>,
 {
     type Output = Matrix<M, N, T>;
 
@@ -99,12 +99,12 @@ where
     }
 }
 
-impl<const M: usize, const N: usize, T> Sum for Matrix<M, N, T>
+impl<const M: usize, const N: usize, T: Copy + PartialEq> Sum for Matrix<M, N, T>
 where
-    Self: Add<Self, Output = Self> + Default,
+    Self: Add<Self, Output = Self> + Zero,
 {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(Default::default(), |a, b| a + b)
+        iter.fold(Self::zero(), |a, b| a + b)
     }
 }
 

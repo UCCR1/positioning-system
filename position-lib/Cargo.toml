@@ -8,6 +8,7 @@ uom = { workspace = true }
 linalg = { path = "../linalg" }
 libm = { workspace = true }
 kalman_filters = "1.0.1"
+heapless = { workspace = true }
 
 [dev-dependencies]
 approx = { version = "0.5.1", default-features = false }

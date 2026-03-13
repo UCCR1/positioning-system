@@ -1,12 +1,10 @@
 use core::ops::{Div, Mul, Neg, SubAssign};
 
-use crate::{matrix::Matrix, vector::Vector};
+use num_traits::Zero;
 
-fn hack_abs<T: PartialOrd + Default + Neg<Output = T>>(val: T) -> T {
-    if val >= Default::default() { val } else { -val }
-}
+use crate::{abs, matrix::Matrix, vector::Vector};
 
-impl<const M: usize, const N: usize, T: Copy + Default> Matrix<M, N, T> {
+impl<const M: usize, const N: usize, T: Copy> Matrix<M, N, T> {
     pub fn row(self, i: usize) -> Matrix<1, N, T> {
         return Matrix([self.0[i]]);
     }
@@ -15,23 +13,21 @@ impl<const M: usize, const N: usize, T: Copy + Default> Matrix<M, N, T> {
         (self[a], self[b]) = (self[b], self[a])
     }
 
-    pub fn solve<S, R, O>(mut self, mut b: Vector<M, R>) -> Option<Vector<N, O>>
+    pub fn solve<S: Copy, R: Copy, O: Copy>(mut self, mut b: Vector<M, R>) -> Option<Vector<N, O>>
     where
         T: Div<T, Output = S>
             + Mul<S, Output = T>
             + Mul<O, Output = R>
-            + SubAssign<T>
+            + SubAssign
             + Neg<Output = T>
             + PartialOrd
-            + Default
-            + Copy,
-        R: Copy + Default + Mul<S, Output = R> + SubAssign<R> + PartialEq + Div<T, Output = O>,
-        S: Copy,
-        O: Copy + Default,
+            + Zero,
+        R: Mul<S, Output = R> + SubAssign<R> + Div<T, Output = O> + Zero,
+        O: Zero,
     {
         row_reduce(&mut self, &mut b);
 
-        let mut result = [O::default(); N];
+        let mut result = [O::zero(); N];
 
         for i in (0..M).rev() {
             let mut sum = b[i][0];
@@ -40,8 +36,8 @@ impl<const M: usize, const N: usize, T: Copy + Default> Matrix<M, N, T> {
                 sum -= self[i][j] * result[j];
             }
 
-            if self[i][i] == Default::default() {
-                if sum != Default::default() {
+            if self[i][i].is_zero() {
+                if !sum.is_zero() {
                     return None;
                 }
             } else {
@@ -53,45 +49,38 @@ impl<const M: usize, const N: usize, T: Copy + Default> Matrix<M, N, T> {
     }
 }
 
-pub fn row_reduce<const M: usize, const N: usize, T, R, S>(
-    A: &mut Matrix<M, N, T>,
-    b: &mut Vector<M, R>,
+pub fn row_reduce<const M: usize, const N: usize, T: Copy, R: Copy, S: Copy>(
+    coeff_matrix: &mut Matrix<M, N, T>,
+    constants: &mut Vector<M, R>,
 ) where
-    T: Div<T, Output = S>
-        + Mul<S, Output = T>
-        + SubAssign<T>
-        + Neg<Output = T>
-        + PartialOrd
-        + Default
-        + Copy,
-    R: Copy + Default + Mul<S, Output = R> + SubAssign<R>,
-    S: Copy,
+    T: Div<T, Output = S> + Mul<S, Output = T> + SubAssign + Neg<Output = T> + PartialOrd + Zero,
+    R: Mul<S, Output = R> + SubAssign,
 {
     let mut h = 0;
     let mut k = 0;
 
     while h < M && k < N {
-        let pivot_row = (h..M)
-            .max_by(|a, b| {
-                hack_abs(A[*a][k])
-                    .partial_cmp(&hack_abs(A[*b][k]))
-                    .unwrap_or(core::cmp::Ordering::Equal)
-            })
-            .unwrap();
+        let mut pivot_row = h;
 
-        if A[pivot_row][k] == Default::default() {
+        for i in h..M {
+            if abs(coeff_matrix[i][k]) > abs(coeff_matrix[pivot_row][k]) {
+                pivot_row = i;
+            }
+        }
+
+        if coeff_matrix[pivot_row][k] == T::zero() {
             k += 1;
         } else {
-            A.swap_rows(h, pivot_row);
-            b.swap_rows(h, pivot_row);
+            coeff_matrix.swap_rows(h, pivot_row);
+            constants.swap_rows(h, pivot_row);
 
             for i in (h + 1)..M {
-                let scalar = A[i][k] / A[h][k];
+                let scalar = coeff_matrix[i][k] / coeff_matrix[h][k];
 
-                A[i] = (A.row(i) - A.row(h) * scalar).0[0];
-                b[i][0] = (b.row(i) - b.row(h) * scalar).0[0][0];
+                coeff_matrix[i] = (coeff_matrix.row(i) - coeff_matrix.row(h) * scalar).0[0];
+                constants[i][0] = (constants.row(i) - constants.row(h) * scalar).0[0][0];
 
-                A[i][k] = Default::default();
+                coeff_matrix[i][k] = T::zero();
             }
 
             h += 1;

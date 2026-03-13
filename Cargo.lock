@@ -54,9 +54,7 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "heapless",
- "libm",
  "linalg",
- "position-lib",
  "thiserror",
  "uom",
  "zerocopy",
@@ -68,6 +66,7 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "libm",
+ "num-traits",
  "paste",
  "uom",
 ]
@@ -92,6 +91,8 @@ name = "position-lib"
 version = "0.1.0"
 dependencies = [
  "approx",
+ "heapless",
+ "libm",
  "linalg",
  "uom",
 ]
@@ -166,8 +167,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 [[package]]
 name = "uom"
 version = "0.38.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a739f83872836c82a4f2527d4e54b37007b3de68cafe7edde95fd695968bf4b9"
+source = "git+https://github.com/UCCR1/uom#5006c62cc32d84854f1e5dcaf757c48ded365d14"
 dependencies = [
  "num-traits",
  "typenum",
