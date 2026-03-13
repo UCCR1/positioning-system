@@ -1,10 +1,8 @@
 use core::array;
 
+use num_traits::ConstZero;
 use position_lib::odometry::{Odometry, TrackingWheel};
-use uom::{
-    si::f32::{Angle, Length},
-    ConstZero,
-};
+use uom::si::f32::{Angle, Length};
 
 use crate::encoder::QuadratureEncoder;
 
@@ -14,6 +12,7 @@ pub struct OdometryTask<const N: usize> {
     wheel_diameter: Length,
 
     encoders: [QuadratureEncoder; N],
+    last_angle: Angle,
 
     last_positions: [Angle; N],
 }
@@ -30,6 +29,8 @@ impl<const N: usize> OdometryTask<N> {
             module,
             encoders,
             wheel_diameter,
+
+            last_angle: Default::default(),
             last_positions: [Default::default(); N],
         }
     }
@@ -41,7 +42,7 @@ impl<const N: usize> OdometryTask<N> {
             (new_positions[i] - self.last_positions[i]) * self.wheel_diameter / 2.0
         });
 
-        let angle_change = Angle::ZERO; // TODO: Read value from IMU
+        let angle_change = Angle::ZERO;
 
         self.module.update(travels, angle_change);
 

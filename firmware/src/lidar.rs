@@ -1,7 +1,7 @@
 use esp_hal::{
+    Blocking,
     gpio::AnyPin,
     uart::{AnyUart, Config, RxError, Uart, UartRx},
-    Blocking,
 };
 use heapless::spsc::Queue;
 use lidar_lib::data::{LidarDataReader, LidarPoint, LidarReadError};

@@ -20,10 +20,11 @@ use uom::si::{
     length::inch,
 };
 
-use crate::{lidar::Lidar, odometry::OdometryTask};
+use crate::{imu::Imu, lidar::Lidar, odometry::OdometryTask};
 
 #[macro_use]
 mod encoder;
+mod imu;
 mod lidar;
 mod odometry;
 
@@ -44,7 +45,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 fn main() -> ! {
     // generator version: 1.2.0
 
-    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_80MHz);
+    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_240MHz);
     let _peripherals = esp_hal::init(config);
 
     declare_encoders!(encoder_module, [0, 1]);
@@ -52,7 +53,17 @@ fn main() -> ! {
     let (left_encoder, right_encoder) = encoder_module::init(
         _peripherals.PCNT,
         (_peripherals.GPIO14.into(), _peripherals.GPIO15.into()),
-        (_peripherals.GPIO2.into(), _peripherals.GPIO3.into()),
+        (_peripherals.GPIO17.into(), _peripherals.GPIO3.into()),
+    );
+
+    let imu = Imu::new(
+        _peripherals.SPI2.into(),
+        _peripherals.GPIO12.into(),
+        _peripherals.GPIO19.into(),
+        _peripherals.GPIO13.into(),
+        _peripherals.GPIO21.into(),
+        _peripherals.GPIO1.into(),
+        _peripherals.GPIO2.into(),
     );
 
     let mut odometry = OdometryTask::new(
@@ -60,11 +71,11 @@ fn main() -> ! {
         [
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-                location: real_vector!(Length::millimeter, -20.0, 20.0), // TODO: Determine this
+                location: real_vector!(Length::millimeter, -20.0, 20.0),
             },
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-                location: real_vector!(Length::millimeter, 20.0, 20.0), // TODO: Determine this
+                location: real_vector!(Length::millimeter, 20.0, 20.0),
             },
         ],
         Length::new::<inch>(2.0),
@@ -79,8 +90,8 @@ fn main() -> ! {
     loop {
         let delay_start = Instant::now();
 
+        lidar.update();
         odometry.update();
-        lidar.update().unwrap();
 
         while delay_start.elapsed() < Duration::from_millis(10) {}
     }
