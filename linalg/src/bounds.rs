@@ -12,7 +12,7 @@ impl<const N: usize, T: Copy + PartialEq> TryFrom<Line<N, T>> for Bounds<N, T> {
     type Error = BoundsHaveNoVolume;
 
     fn try_from(value: Line<N, T>) -> Result<Self, Self::Error> {
-        let (start, end) = value.0;
+        let Line(start, end) = value;
 
         for i in 0..N {
             if start[i][0] == end[i][0] {

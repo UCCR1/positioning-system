@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Line<const N: usize, T>(pub (Vector<N, T>, Vector<N, T>));
+pub struct Line<const N: usize, T>(pub Vector<N, T>, pub Vector<N, T>);
 
 impl<const N: usize, T: Copy + Default> Line<N, T> {
     pub fn length<S, R>(self) -> T
@@ -17,7 +17,7 @@ impl<const N: usize, T: Copy + Default> Line<N, T> {
         T: Mul<T, Output = S> + Div<Output = R> + SubAssign,
         S: Sum + Root<Root = T>,
     {
-        let (start, end) = self.0;
+        let Self(start, end) = self;
 
         (end - start).magnitude()
     }
@@ -27,7 +27,7 @@ impl<const N: usize, T: Copy + Default> Line<N, T> {
         T: Mul<S, Output = T> + AddAssign + SubAssign,
         S: Copy,
     {
-        let (start, end) = self.0;
+        let Self(start, end) = self;
 
         start + end * t - start * t
     }
@@ -38,7 +38,7 @@ impl<const N: usize, T: Copy + Default> Line<N, T> {
         S: Copy,
         O: Copy + Div<O, Output = S> + Sum + PartialOrd + Sub<O, Output = O>,
     {
-        let (start, end) = self.0;
+        let Self(start, end) = self;
 
         let v = end - start;
         let d = point - start;
@@ -61,7 +61,7 @@ impl<const N: usize, T: Copy + Default> Line<N, T> {
         T: Mul<T, Output = S> + Div<Output = R> + SubAssign + PartialOrd + Sum,
         S: Sum + Root<Root = T> + PartialOrd + Sub<S, Output = S>,
     {
-        let (start, end) = self.0;
+        let Self(start, end) = self;
 
         let ab = end - start;
         let ap = point - start;
@@ -90,8 +90,8 @@ impl<const N: usize, T: Copy + Default> Line<N, T> {
             + PartialOrd,
         S: Copy + Default,
     {
-        let (p1, o1) = self.0;
-        let (p2, o2) = other.0;
+        let Self(p1, o1) = self;
+        let Self(p2, o2) = other;
 
         let v1 = o1 - p1;
         let v2 = o2 - p2;
@@ -117,10 +117,10 @@ mod test {
 
     #[test]
     fn contains_point() {
-        let line = Line((
+        let line = Line(
             real_vector![Length::meter, 0.0, 0.0],
             real_vector![Length::meter, 2.0, 2.0],
-        ));
+        );
 
         assert!(line.contains_point(
             real_vector![Length::meter, 1.0, 1.0],
@@ -130,14 +130,14 @@ mod test {
 
     #[test]
     fn test_find_intersection() {
-        let line_seg1 = Line((
+        let line_seg1 = Line(
             real_vector!(Length::meter, 1.0, 1.0),
             real_vector!(Length::meter, 5.0, 5.0),
-        ));
-        let line_seg2 = Line((
+        );
+        let line_seg2 = Line(
             real_vector!(Length::meter, 2.0, 1.0),
             real_vector!(Length::meter, 2.0, 5.0),
-        ));
+        );
 
         assert_relative_eq!(
             line_seg1.intersection(line_seg2).unwrap().x().value,
