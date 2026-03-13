@@ -1,6 +1,6 @@
 use core::{
     iter::Sum,
-    ops::{AddAssign, Div, Mul, Neg, SubAssign},
+    ops::{AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
 use num_traits::{One, Zero};
@@ -55,7 +55,7 @@ impl<const N: usize, T: Copy> Line<N, T> {
         start + v * t
     }
 
-    pub fn intersection<S: Copy>(self, other: Self) -> Option<Vector<N, T>>
+    pub fn n_intersection<S: Copy>(self, other: Self) -> Option<Vector<N, T>>
     where
         T: AddAssign
             + SubAssign
@@ -85,7 +85,43 @@ impl<const N: usize, T: Copy> Line<N, T> {
             return None;
         }
 
-        Some(p1 + v1 * scalars[0][0])
+        Some(p1 + v1 * s)
+    }
+}
+
+impl<T: Copy> Line<2, T> {
+    pub fn intersection<D: Copy, I: Copy, S: Copy>(self, other: Self) -> Option<Vector<2, T>>
+    where
+        T: AddAssign
+            + SubAssign
+            + Neg<Output = T>
+            + Mul<T, Output = D>
+            + Div<D, Output = I>
+            + Mul<S, Output = T>,
+        D: Sub<D, Output = D>,
+        S: Zero + AddAssign + Zero + PartialOrd + One,
+        I: Mul<T, Output = S>,
+    {
+        let Self(p1, o1) = self;
+        let Self(p2, o2) = other;
+
+        let v1 = o1 - p1;
+        let v2 = o2 - p2;
+
+        let coeff_matrix = Matrix::from_col_vectors([v1, -v2]);
+
+        let constants = p2 - p1;
+
+        let scalars = coeff_matrix.inv().product(constants);
+
+        let [s] = scalars[0];
+        let [t] = scalars[1];
+
+        if s < S::zero() || s > S::one() || t < S::zero() || t > S::one() {
+            return None;
+        }
+
+        Some(p1 + v1 * s)
     }
 }
 

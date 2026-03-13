@@ -84,18 +84,18 @@ impl<const M: usize, const N: usize, T: Copy> Matrix<M, N, T> {
 }
 
 impl<T: Copy> Matrix<2, 2, T> {
-    pub fn det<O>(self) -> O
+    pub fn det<D>(self) -> D
     where
-        T: Mul<T, Output = O>,
-        O: Sub<O, Output = O>,
+        T: Mul<T, Output = D>,
+        D: Sub<D, Output = D>,
     {
         self[0][0] * self[1][1] - self[0][1] * self[1][0]
     }
 
-    pub fn inv<O: Copy, D>(self) -> Matrix<2, 2, D>
+    pub fn inv<D: Copy, I>(self) -> Matrix<2, 2, I>
     where
-        T: Neg<Output = T> + Mul<T, Output = O> + Div<O, Output = D>,
-        O: Sub<O, Output = O>,
+        T: Neg<Output = T> + Mul<T, Output = D> + Div<D, Output = I>,
+        D: Sub<D, Output = D>,
     {
         let det = self.det();
 
