@@ -98,7 +98,7 @@ impl<T: Copy> Line<2, T> {
             + Mul<T, Output = D>
             + Div<D, Output = I>
             + Mul<S, Output = T>,
-        D: Sub<D, Output = D>,
+        D: Sub<D, Output = D> + Zero,
         S: Zero + AddAssign + Zero + PartialOrd + One,
         I: Mul<T, Output = S>,
     {
@@ -112,7 +112,7 @@ impl<T: Copy> Line<2, T> {
 
         let constants = p2 - p1;
 
-        let scalars = coeff_matrix.inv().product(constants);
+        let scalars = coeff_matrix.inv()?.product(constants);
 
         let [s] = scalars[0];
         let [t] = scalars[1];

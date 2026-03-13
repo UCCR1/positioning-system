@@ -3,6 +3,7 @@ use core::{
     ops::{Deref, DerefMut, Div, Mul, Sub},
 };
 
+use num_traits::{One, Zero};
 use uom::{
     ConstZero,
     si::f32::{Angle, Area, Length, Ratio},
@@ -20,71 +21,31 @@ pub struct UnitVector<const N: usize, T>(Vector<N, T>);
 
 impl UnitVector<2, Ratio> {
     pub fn from_angle(angle: Angle) -> Self {
-        Self(vector![
-            Ratio {
-                value: libm::cosf(angle.value),
-                ..Default::default()
-            },
-            Ratio {
-                value: libm::sinf(angle.value),
-                ..Default::default()
-            }
-        ])
-    }
-
-    pub fn right() -> Self {
-        Self(vector![
-            Ratio {
-                value: 1.0,
-                ..Default::default()
-            },
-            Ratio::ZERO
-        ])
-    }
-
-    pub fn up() -> Self {
-        Self(vector![
-            Ratio::ZERO,
-            Ratio {
-                value: 1.0,
-                ..Default::default()
-            }
-        ])
+        Self(vector![angle.cos(), angle.sin()])
     }
 }
 
-impl UnitVector<3, Ratio> {
+impl<T: One + Zero> UnitVector<2, T> {
     pub fn right() -> Self {
-        Self(vector![
-            Ratio {
-                value: 1.0,
-                ..Default::default()
-            },
-            Ratio::ZERO,
-            Ratio::ZERO
-        ])
+        Self(vector![T::one(), T::zero()])
     }
 
     pub fn up() -> Self {
-        Self(vector![
-            Ratio::ZERO,
-            Ratio {
-                value: 1.0,
-                ..Default::default()
-            },
-            Ratio::ZERO
-        ])
+        Self(vector![T::zero(), T::one()])
+    }
+}
+
+impl<T: One + Zero> UnitVector<3, T> {
+    pub fn right() -> Self {
+        Self(vector![T::one(), T::zero(), T::zero()])
+    }
+
+    pub fn up() -> Self {
+        Self(vector![T::zero(), T::one(), T::zero()])
     }
 
     pub fn forward() -> Self {
-        Self(vector![
-            Ratio::ZERO,
-            Ratio::ZERO,
-            Ratio {
-                value: 1.0,
-                ..Default::default()
-            }
-        ])
+        Self(vector![T::zero(), T::zero(), T::one()])
     }
 }
 
@@ -105,44 +66,38 @@ impl<const N: usize, T> DerefMut for UnitVector<N, T> {
 pub trait Root {
     type Root;
 
-    fn sqrt(self) -> Self::Root;
+    fn root(self) -> Self::Root;
 }
 
 impl Root for f32 {
     type Root = f32;
 
-    fn sqrt(self) -> Self::Root {
-        libm::sqrtf(self)
+    fn root(self) -> Self::Root {
+        self.sqrt()
     }
 }
 
 impl Root for f64 {
     type Root = f64;
 
-    fn sqrt(self) -> Self::Root {
-        libm::sqrt(self)
+    fn root(self) -> Self::Root {
+        self.sqrt()
     }
 }
 
 impl Root for Area {
     type Root = Length;
 
-    fn sqrt(self) -> Self::Root {
-        Length {
-            value: libm::sqrtf(self.value),
-            ..Default::default()
-        }
+    fn root(self) -> Self::Root {
+        self.sqrt()
     }
 }
 
 impl Root for Ratio {
     type Root = Ratio;
 
-    fn sqrt(self) -> Self::Root {
-        Ratio {
-            value: libm::sqrtf(self.value),
-            ..Default::default()
-        }
+    fn root(self) -> Self::Root {
+        self.sqrt()
     }
 }
 
@@ -153,7 +108,7 @@ where
     S: Sum + Root<Root = T>,
 {
     pub fn magnitude(self) -> T {
-        self.dot(self).sqrt()
+        self.dot(self).root()
     }
 
     pub fn normalized(self) -> UnitVector<N, R> {
@@ -168,10 +123,8 @@ impl Vector<2, Length> {
         }
 
         vector![
-            libm::sinf(angle.value) * self.x() / angle
-                - (1.0 - libm::cosf(angle.value)) * self.y() / angle,
-            libm::sinf(angle.value) * self.y() / angle
-                + (1.0 - libm::cosf(angle.value)) * self.x() / angle
+            angle.sin() * self.x() / angle - (Ratio::one() - angle.cos()) * self.y() / angle,
+            angle.sin() * self.y() / angle + (Ratio::one() - angle.cos()) * self.x() / angle
         ]
     }
 }
@@ -200,8 +153,8 @@ mod tests {
 
         assert_relative_eq!(a.magnitude(), 1.0);
 
-        assert_relative_eq!(a.x(), libm::sqrtf(2.0) / 2.0);
-        assert_relative_eq!(a.y(), libm::sqrtf(2.0) / 2.0);
+        assert_relative_eq!(a.x(), FRAC_1_SQRT_2);
+        assert_relative_eq!(a.y(), FRAC_1_SQRT_2);
     }
 
     #[test]

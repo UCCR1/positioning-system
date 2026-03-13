@@ -5,9 +5,10 @@ edition = "2024"
 
 [dependencies]
 paste = "1.0.15"
-libm = { workspace = true }
 uom = { workspace = true }
-num-traits = { version = "0.2.19", default-features = false }
+num-traits = { version = "0.2.19", default-features = false, features = [
+    "libm",
+] }
 
 [dev-dependencies]
 approx = { version = "0.5.1", default-features = false }

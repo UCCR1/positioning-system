@@ -1,15 +1,19 @@
-use uom::si::angle::radian;
-use uom::si::f32::{Angle, Length};
-use uom::si::length::meter;
+use core::f32::consts::PI;
 
-use libm::expf;
-use libm::sqrtf;
+use uom::si::{
+    angle::radian,
+    f32::{Angle, Length, ReciprocalLength},
+    length::meter,
+    reciprocal_length::reciprocal_meter,
+};
 
-fn normal_likelyhood_length(x: Length, mean: Length, std_dev2: Length) -> Length {
-    let exponent = ((x - mean) * (x - mean) / (2.0 * std_dev2)).get::<meter>();
-    let likelyhood = (1.0 / sqrtf(2.0 * 3.141 * std_dev2.get::<meter>())) * expf(exponent);
+fn normal_likelyhood_length(x: Length, mean: Length, std_dev: Length) -> ReciprocalLength {
+    let variance = std_dev * std_dev;
 
-    Length::new::<meter>(likelyhood)
+    let exponent = (x - mean) * (x - mean) / (2.0 * variance);
+    let likelyhood = (1.0 / (2.0 * PI * variance).sqrt()) * exponent.exp();
+
+    likelyhood
 }
 
 pub trait DistSensor {
@@ -18,7 +22,8 @@ pub trait DistSensor {
     fn offset_rot() -> Angle;
 
     fn expected_meas(x: Length, y: Length, rot: Angle) -> Length;
-    fn measurement_std_dev2(x: Length, y: Length, rot: Angle) -> Length;
+    fn measurement_std_dev(x: Length, y: Length, rot: Angle) -> Length;
+
     fn likelyhood(&self, robot_state: &[f32], measurements: &[f32]) -> f32 {
         let curr_x = Length::new::<meter>(robot_state[0]);
         let curr_y = Length::new::<meter>(robot_state[1]);
@@ -29,7 +34,8 @@ pub trait DistSensor {
             curr_y + Self::offset_y(),
             curr_rot + Self::offset_rot(),
         );
-        let curr_std_dev = Self::measurement_std_dev2(
+
+        let curr_std_dev = Self::measurement_std_dev(
             curr_x + Self::offset_x(),
             curr_y + Self::offset_y(),
             curr_rot + Self::offset_rot(),
@@ -37,6 +43,7 @@ pub trait DistSensor {
 
         let measured_dist = Length::new::<meter>(measurements[0]);
 
-        normal_likelyhood_length(measured_dist, curr_expected, curr_std_dev).get::<meter>()
+        normal_likelyhood_length(measured_dist, curr_expected, curr_std_dev)
+            .get::<reciprocal_meter>()
     }
 }

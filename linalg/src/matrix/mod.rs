@@ -4,7 +4,7 @@ use core::{
 };
 
 use num_traits::Zero;
-use uom::si::f32::Angle;
+use uom::si::f32::{Angle, Ratio};
 
 use crate::vector::Vector;
 
@@ -92,26 +92,27 @@ impl<T: Copy> Matrix<2, 2, T> {
         self[0][0] * self[1][1] - self[0][1] * self[1][0]
     }
 
-    pub fn inv<D: Copy, I>(self) -> Matrix<2, 2, I>
+    pub fn inv<D: Copy, I>(self) -> Option<Matrix<2, 2, I>>
     where
         T: Neg<Output = T> + Mul<T, Output = D> + Div<D, Output = I>,
-        D: Sub<D, Output = D>,
+        D: Sub<D, Output = D> + Zero,
     {
         let det = self.det();
 
-        Matrix([
+        if det.is_zero() {
+            return None;
+        }
+
+        Some(Matrix([
             [self[1][1] / det, -self[0][1] / det],
             [-self[1][0] / det, self[0][0] / det],
-        ])
+        ]))
     }
 }
 
-impl Matrix<2, 2, f32> {
+impl Matrix<2, 2, Ratio> {
     pub fn rotation_matrix(angle: Angle) -> Self {
-        Matrix([
-            [libm::cosf(angle.value), -libm::sinf(angle.value)],
-            [libm::sinf(angle.value), libm::cosf(angle.value)],
-        ])
+        Matrix([[angle.cos(), -angle.sin()], [angle.sin(), angle.cos()]])
     }
 }
 
@@ -119,7 +120,7 @@ impl<const N: usize, T: Copy + Default> Matrix<2, N, T> {
     pub fn rotate<O>(self, angle: Angle) -> Matrix<2, N, O>
     where
         O: Zero + AddAssign,
-        f32: Mul<T, Output = O>,
+        Ratio: Mul<T, Output = O>,
     {
         Matrix::rotation_matrix(angle).product(self)
     }
@@ -133,7 +134,7 @@ mod test {
     use uom::si::angle::degree;
 
     use super::*;
-    use crate::vector;
+    use crate::real_vector;
 
     #[test]
     fn product() {
@@ -154,11 +155,11 @@ mod test {
 
     #[test]
     fn rotate() {
-        let right = vector![1.0, 0.0];
-        let up_diag = vector![FRAC_1_SQRT_2, FRAC_1_SQRT_2];
+        let right = real_vector![Length::meter, 1.0, 0.0];
+        let up_diag = real_vector![Length::meter, FRAC_1_SQRT_2, FRAC_1_SQRT_2];
         let rotated = right.rotate(Angle::new::<degree>(45.0));
 
-        assert_relative_eq!(rotated.x(), up_diag.x());
-        assert_relative_eq!(rotated.y(), up_diag.y());
+        assert_relative_eq!(rotated.x().value, up_diag.x().value);
+        assert_relative_eq!(rotated.y().value, up_diag.y().value);
     }
 }

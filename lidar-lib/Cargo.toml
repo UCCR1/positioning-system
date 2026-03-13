@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 uom = { workspace = true }
 linalg = { path = "../linalg" }
-zerocopy = { version = "0.8.42", features=["derive"] }
+zerocopy = { version = "0.8.42", features = ["derive"] }
 thiserror = { workspace = true }
 heapless = { workspace = true }
 

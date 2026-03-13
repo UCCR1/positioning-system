@@ -28,12 +28,7 @@ impl<const N: usize> Odometry<N> {
 
         let ddt = d.product(d.transpose());
 
-        assert!(
-            ddt.det().abs().value > 1e-6,
-            "Tracking wheel system is not solvable"
-        );
-
-        let ddt_inv = ddt.inv();
+        let ddt_inv = ddt.inv().expect("Tracking wheel system is not solvable");
 
         let weighting_matrix = d.transpose().product(ddt_inv);
 

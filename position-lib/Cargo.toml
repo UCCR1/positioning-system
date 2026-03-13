@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 uom = { workspace = true }
 linalg = { path = "../linalg" }
-libm = { workspace = true }
 kalman_filters = "1.0.1"
 heapless = { workspace = true }
 
