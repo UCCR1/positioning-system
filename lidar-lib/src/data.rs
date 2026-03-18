@@ -127,18 +127,16 @@ impl<const N: usize> LidarDataReader<N> {
     pub fn read_slice(&mut self, slice: &[u8]) -> Result<Option<LidarData>, LidarReadError> {
         self.data_buffer.extend_from_slice(slice)?;
 
-        while self.data_buffer.len() > 2 && !self.data_buffer.starts_with(&LidarPacket::HEADER) {
-            self.data_buffer.drain(..1);
-        }
+        while self.data_buffer.len() >= LidarPacket::SIZE {
+            if !self.data_buffer.starts_with(&LidarPacket::HEADER) {
+                self.data_buffer.drain(..1);
+            } else {
+                let packet = self.data_buffer.drain(..LidarPacket::SIZE);
 
-        if self.data_buffer.len() >= LidarPacket::SIZE
-            && self.data_buffer.starts_with(&LidarPacket::HEADER)
-        {
-            let packet = self.data_buffer.drain(..LidarPacket::SIZE);
+                let data = LidarData::parse_packet(packet.as_slice())?;
 
-            let data = LidarData::parse_packet(packet.as_slice())?;
-
-            return Ok(Some(data));
+                return Ok(Some(data));
+            }
         }
 
         Ok(None)
