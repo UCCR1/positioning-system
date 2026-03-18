@@ -2,4 +2,5 @@
 
 pub mod field_map;
 pub mod odometry;
+pub mod position;
 pub mod sensor;

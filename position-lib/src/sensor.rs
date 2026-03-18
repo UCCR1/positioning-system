@@ -17,12 +17,12 @@ fn normal_likelyhood_length(x: Length, mean: Length, std_dev: Length) -> Recipro
 }
 
 pub trait DistSensor {
-    fn offset_x() -> Length;
-    fn offset_y() -> Length;
-    fn offset_rot() -> Angle;
+    fn offset_x(self: &Self) -> Length;
+    fn offset_y(self: &Self) -> Length;
+    fn offset_rot(self: &Self) -> Angle;
 
-    fn expected_meas(x: Length, y: Length, rot: Angle) -> Length;
-    fn measurement_std_dev(x: Length, y: Length, rot: Angle) -> Length;
+    fn expected_meas(self: &Self, x: Length, y: Length, rot: Angle) -> Length;
+    fn measurement_std_dev(self: &Self, x: Length, y: Length, rot: Angle) -> Length;
 
     fn likelyhood(&self, robot_state: &[f32], measurements: &[f32]) -> f32 {
         let curr_x = Length::new::<meter>(robot_state[0]);
@@ -30,15 +30,17 @@ pub trait DistSensor {
         let curr_rot = Angle::new::<radian>(robot_state[2]);
 
         let curr_expected = Self::expected_meas(
-            curr_x + Self::offset_x(),
-            curr_y + Self::offset_y(),
-            curr_rot + Self::offset_rot(),
+            &self,
+            curr_x + Self::offset_x(&self),
+            curr_y + Self::offset_y(&self),
+            curr_rot + Self::offset_rot(&self),
         );
 
         let curr_std_dev = Self::measurement_std_dev(
-            curr_x + Self::offset_x(),
-            curr_y + Self::offset_y(),
-            curr_rot + Self::offset_rot(),
+            &self,
+            curr_x + Self::offset_x(&self),
+            curr_y + Self::offset_y(&self),
+            curr_rot + Self::offset_rot(&self),
         );
 
         let measured_dist = Length::new::<meter>(measurements[0]);
