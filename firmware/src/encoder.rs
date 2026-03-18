@@ -32,7 +32,8 @@ impl QuadratureEncoder {
     pub fn ticks(&self) -> i32 {
         let pcnt = PCNT::regs();
 
-        pcnt.u_cnt(self.counter_num).read().cnt().bits() as i32 + self.offset.load(Ordering::SeqCst)
+        (pcnt.u_cnt(self.counter_num).read().cnt().bits() as i16) as i32 // You must case to i16 first
+            + self.offset.load(Ordering::SeqCst)
     }
 
     pub fn position(&self) -> Angle {

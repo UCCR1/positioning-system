@@ -1,15 +1,9 @@
 #![no_std]
 #![no_main]
-#![deny(
-    clippy::mem_forget,
-    reason = "mem::forget is generally not safe to do with esp_hal types, especially those \
-    holding buffers for the duration of a data transfer."
-)]
-#![deny(clippy::large_stack_frames)]
 
+use embassy_executor::Spawner;
 use esp_hal::{
     clock::CpuClock,
-    main,
     time::{Duration, Instant},
 };
 use linalg::{real_vector, vector::real::UnitVector};
@@ -20,10 +14,15 @@ use uom::si::{
     length::inch,
 };
 
-use crate::{lidar::Lidar, odometry::OdometryTask};
+use crate::{
+    imu::{Imu, task::start_imu_task},
+    lidar::Lidar,
+    odometry::{OdometryTask, start_odometry_task},
+};
 
 #[macro_use]
 mod encoder;
+mod imu;
 mod lidar;
 mod odometry;
 
@@ -32,19 +31,11 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-// This creates a default app-descriptor required by the esp-idf bootloader.
-// For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
-#[allow(
-    clippy::large_stack_frames,
-    reason = "it's not unusual to allocate larger buffers etc. in main"
-)]
-#[main]
-fn main() -> ! {
-    // generator version: 1.2.0
-
-    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_80MHz);
+#[esp_rtos::main]
+async fn main(spawner: Spawner) {
+    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_240MHz);
     let _peripherals = esp_hal::init(config);
 
     declare_encoders!(encoder_module, [0, 1]);
@@ -52,19 +43,29 @@ fn main() -> ! {
     let (left_encoder, right_encoder) = encoder_module::init(
         _peripherals.PCNT,
         (_peripherals.GPIO14.into(), _peripherals.GPIO15.into()),
-        (_peripherals.GPIO2.into(), _peripherals.GPIO3.into()),
+        (_peripherals.GPIO17.into(), _peripherals.GPIO3.into()),
     );
 
-    let mut odometry = OdometryTask::new(
+    let imu = Imu::new(
+        _peripherals.SPI2.into(),
+        _peripherals.GPIO12.into(),
+        _peripherals.GPIO19.into(),
+        _peripherals.GPIO13.into(),
+        _peripherals.GPIO21.into(),
+        _peripherals.GPIO1.into(),
+        _peripherals.GPIO2.into(),
+    );
+
+    let odometry = OdometryTask::new(
         [left_encoder, right_encoder],
         [
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-                location: real_vector!(Length::millimeter, -20.0, 20.0), // TODO: Determine this
+                location: real_vector!(Length::millimeter, -20.0, 20.0),
             },
             TrackingWheel {
                 direction: UnitVector::from_angle(Angle::new::<degree>(45.0)),
-                location: real_vector!(Length::millimeter, 20.0, 20.0), // TODO: Determine this
+                location: real_vector!(Length::millimeter, 20.0, 20.0),
             },
         ],
         Length::new::<inch>(2.0),
@@ -76,11 +77,13 @@ fn main() -> ! {
         _peripherals.GPIO4.into(),
     );
 
+    spawner.spawn(start_imu_task(imu)).unwrap();
+    spawner.spawn(start_odometry_task(odometry)).unwrap();
+
     loop {
         let delay_start = Instant::now();
 
-        odometry.update();
-        lidar.update().unwrap();
+        lidar.update();
 
         while delay_start.elapsed() < Duration::from_millis(10) {}
     }
