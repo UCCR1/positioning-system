@@ -5,6 +5,10 @@ use esp_hal::{
     gpio::{AnyPin, Input, InputConfig, Level, Output, OutputConfig, Pull},
     spi::master::{AnySpi, Config, Spi},
 };
+use linalg::{real_vector, vector::Vector};
+use uom::si::f32::AngularVelocity;
+
+use crate::imu::registers::{AngularRateSensorControl, FullScaleSelection, GyroscopeOutputAll};
 
 pub mod registers;
 pub mod task;
@@ -66,16 +70,16 @@ pub struct Imu<'a, D: SpiDevice> {
 
     int1: Input<'a>,
     int2: Input<'a>,
+
+    full_scale: FullScaleSelection,
 }
 
 impl<D: SpiDevice> Imu<'_, D> {
-    pub fn read<const N: usize, T: ReadRegister<N>>(
-        &mut self,
-    ) -> Result<T, RegisterError<D::Error>> {
+    fn read<const N: usize, T: ReadRegister<N>>(&mut self) -> Result<T, RegisterError<D::Error>> {
         T::read(&mut self.spi_device)
     }
 
-    pub fn write<const N: usize, T: WriteRegister<N>>(
+    fn write<const N: usize, T: WriteRegister<N>>(
         &mut self,
         value: T,
     ) -> Result<(), RegisterError<D::Error>> {
@@ -86,6 +90,29 @@ impl<D: SpiDevice> Imu<'_, D> {
 
     pub fn wait_for_data(&mut self) -> impl Future<Output = ()> {
         self.int1.wait_for_rising_edge()
+    }
+
+    pub fn set_full_scale(
+        &mut self,
+        full_scale: FullScaleSelection,
+    ) -> Result<(), RegisterError<D::Error>> {
+        self.full_scale = full_scale;
+
+        self.write(AngularRateSensorControl::from(full_scale))
+    }
+
+    pub fn get_angular_velocity(
+        &mut self,
+    ) -> Result<Vector<3, AngularVelocity>, RegisterError<D::Error>> {
+        let GyroscopeOutputAll { x, y, z } = self.read()?;
+
+        let ratios = [x, y, z].map(|val| val as f32 / i32::MAX as f32);
+
+        let full_scale_velocity = self.full_scale.as_velocity();
+
+        let velocities = ratios.map(|ratio| ratio * full_scale_velocity);
+
+        Ok(velocities.into())
     }
 }
 
@@ -120,6 +147,8 @@ impl<'a> Imu<'a, ExclusiveDevice<Spi<'a, Blocking>, Output<'a>, NoDelay>> {
             spi_device,
             int1,
             int2,
+
+            full_scale: Default::default(),
         }
     }
 }
