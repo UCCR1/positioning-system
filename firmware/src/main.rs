@@ -2,10 +2,15 @@
 #![no_main]
 
 use embassy_executor::Spawner;
+use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use esp_hal::{
     clock::CpuClock,
+    gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
+    spi::master::{self as spi},
     time::{Duration, Instant},
 };
+use esp_println::println;
+use imu_lib::modules::lsm6ds3tr::Lsm6ds3tr;
 use linalg::{real_vector, vector::real::UnitVector};
 use position_lib::odometry::TrackingWheel;
 use uom::si::{
@@ -15,7 +20,7 @@ use uom::si::{
 };
 
 use crate::{
-    imu::{Imu, task::start_imu_task},
+    imu::start_imu_task,
     lidar::Lidar,
     odometry::{OdometryTask, start_odometry_task},
 };
@@ -27,7 +32,8 @@ mod lidar;
 mod odometry;
 
 #[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
+fn panic(e: &core::panic::PanicInfo) -> ! {
+    println!("{e:?}");
     loop {}
 }
 
@@ -42,19 +48,34 @@ async fn main(spawner: Spawner) {
 
     let (left_encoder, right_encoder) = encoder_module::init(
         _peripherals.PCNT,
-        (_peripherals.GPIO14.into(), _peripherals.GPIO15.into()),
-        (_peripherals.GPIO17.into(), _peripherals.GPIO3.into()),
+        (_peripherals.GPIO16.into(), _peripherals.GPIO15.into()),
+        (_peripherals.GPIO39.into(), _peripherals.GPIO38.into()),
     );
 
-    let imu = Imu::new(
-        _peripherals.SPI2.into(),
-        _peripherals.GPIO12.into(),
-        _peripherals.GPIO19.into(),
-        _peripherals.GPIO13.into(),
-        _peripherals.GPIO21.into(),
-        _peripherals.GPIO1.into(),
-        _peripherals.GPIO2.into(),
-    );
+    let spi_config = spi::Config::default();
+    let spi = spi::Spi::new(_peripherals.SPI2, spi_config)
+        .unwrap()
+        .with_miso(_peripherals.GPIO11)
+        .with_mosi(_peripherals.GPIO13)
+        .with_sck(_peripherals.GPIO12);
+
+    let cs_config = OutputConfig::default();
+
+    let spi_device = ExclusiveDevice::new(
+        spi,
+        Output::new(_peripherals.GPIO10, Level::High, cs_config),
+        NoDelay,
+    )
+    .unwrap();
+
+    let interrupts_config = InputConfig::default().with_pull(Pull::None);
+
+    let mut int1 = Input::new(_peripherals.GPIO1, interrupts_config);
+    let mut int2 = Input::new(_peripherals.GPIO2, interrupts_config);
+
+    spawner
+        .spawn(start_imu_task(Lsm6ds3tr::new(spi_device), int1, int2))
+        .unwrap();
 
     let odometry = OdometryTask::new(
         [left_encoder, right_encoder],
@@ -74,17 +95,16 @@ async fn main(spawner: Spawner) {
     let mut lidar = Lidar::new(
         _peripherals.UART1.into(),
         _peripherals.GPIO18.into(),
-        _peripherals.GPIO4.into(),
+        _peripherals.GPIO8.into(),
     );
 
-    spawner.spawn(start_imu_task(imu)).unwrap();
     spawner.spawn(start_odometry_task(odometry)).unwrap();
 
     loop {
         let delay_start = Instant::now();
 
-        lidar.update();
+        lidar.update().unwrap();
 
-        while delay_start.elapsed() < Duration::from_millis(10) {}
+        while delay_start.elapsed() < Duration::from_millis(1) {}
     }
 }

@@ -4,7 +4,7 @@ use embassy_time::Timer;
 use position_lib::odometry::{Odometry, TrackingWheel};
 use uom::si::f32::{Angle, Length};
 
-use crate::{encoder::QuadratureEncoder, imu::task::HEADING_SIGNAL};
+use crate::{encoder::QuadratureEncoder, imu::HEADING_SIGNAL};
 
 pub struct OdometryTask<const N: usize> {
     module: Odometry<N>,

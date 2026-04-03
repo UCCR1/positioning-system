@@ -2,7 +2,12 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 use embassy_time::Instant;
 use embedded_hal::spi::SpiDevice;
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
-use esp_hal::{Blocking, gpio::Output, spi::master::Spi};
+use esp_hal::{
+    Blocking,
+    gpio::{AnyPin, Input, InputConfig, Output, Pull},
+    spi::master::Spi,
+};
+use imu_lib::{Imu, modules::lsm6ds3tr::Lsm6ds3tr, registers::RegisterError};
 use linalg::vector::Vector;
 use num_traits::{ConstZero, Zero};
 use uom::si::{
@@ -10,18 +15,20 @@ use uom::si::{
     time::microsecond,
 };
 
-use crate::imu::{Imu, RegisterError};
-
 pub static HEADING_SIGNAL: Signal<CriticalSectionRawMutex, Angle> = Signal::new();
 
-async fn imu_task<'a, D: SpiDevice>(mut imu: Imu<'a, D>) -> Result<(), RegisterError<D::Error>> {
+async fn imu_task<'a, D: SpiDevice>(
+    mut imu: Lsm6ds3tr<D>,
+    mut int1: Input<'static>,
+    mut int2: Input<'static>,
+) -> Result<(), RegisterError<D::Error>> {
     let mut angle = Angle::ZERO;
 
     let mut last_velocity: Vector<3, AngularVelocity> = Vector::zero();
     let mut last_time = Instant::now();
 
     loop {
-        imu.wait_for_data().await;
+        int1.wait_for_rising_edge().await;
 
         let current_velocity = imu.get_angular_velocity()?;
         let current_time = Instant::now();
@@ -41,7 +48,9 @@ async fn imu_task<'a, D: SpiDevice>(mut imu: Imu<'a, D>) -> Result<(), RegisterE
 
 #[embassy_executor::task]
 pub async fn start_imu_task(
-    imu: Imu<'static, ExclusiveDevice<Spi<'static, Blocking>, Output<'static>, NoDelay>>,
+    imu: Lsm6ds3tr<ExclusiveDevice<Spi<'static, Blocking>, Output<'static>, NoDelay>>,
+    int1: Input<'static>,
+    int2: Input<'static>,
 ) {
-    imu_task(imu).await.unwrap();
+    imu_task(imu, int1, int2).await.unwrap();
 }

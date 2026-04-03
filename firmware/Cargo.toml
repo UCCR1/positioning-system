@@ -13,6 +13,7 @@ esp-bootloader-esp-idf = { version = "0.4.0", features = ["esp32s3"] }
 critical-section = "1.2.0"
 position-lib = { path = "../position-lib" }
 lidar-lib = { path = "../lidar-lib" }
+imu-lib = { path = "../imu-lib" }
 linalg = { path = "../linalg" }
 uom = { git = "https://github.com/UCCR1/uom", default-features = false, features = [
     "si",
@@ -27,12 +28,12 @@ embedded-hal = "1.0.0"
 num-traits = { version = "0.2.19", default-features = false, features = [
     "libm",
 ] }
-packbits = "0.1.1"
-num_enum = { version = "0.7.5", default-features = false }
+
 esp-rtos = { version = "0.2.0", features = ["esp32", "embassy"] }
 embassy-sync = "0.7.2"
 embassy-time = "0.5.0"
 embassy-executor = "0.9.1"
+esp-println = { version = "0.16.1", features = ["esp32"] }
 
 [profile.dev]
 # Rust debug is too slow.

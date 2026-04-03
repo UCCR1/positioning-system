@@ -48,9 +48,9 @@ impl<'a> Lidar<'a> {
     }
 
     pub fn update(&mut self) -> Result<(), LidarError> {
-        let mut tmp_buf = [0; 100];
+        let mut tmp_buf = [0; 500];
 
-        let read_size = self.rx.read(&mut tmp_buf)?;
+        let read_size = self.rx.read_buffered(&mut tmp_buf)?;
 
         if let Some(data) = self.reader.read_slice(&tmp_buf[..read_size])? {
             for point in data.points {
