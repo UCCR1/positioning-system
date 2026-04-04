@@ -3,8 +3,7 @@ use linalg::vector::Vector;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use uom::si::{
     angular_velocity::degree_per_second,
-    f32::{AngularVelocity, Velocity},
-    velocity::meter_per_second,
+    f32::{Acceleration, AngularVelocity},
 };
 
 use crate::{G, Imu, SpiImu, declare_registers, registers::RegisterError};
@@ -19,11 +18,12 @@ pub enum AnalogBandwidth {
 #[derive(TryFromPrimitive, IntoPrimitive, Copy, Clone, Debug, Default)]
 #[repr(u8)]
 pub enum GyroscopeFullScaleSelection {
+    Dps125 = 0b100,
     #[default]
-    Dps245 = 0b00,
-    Dps500 = 0b01,
-    Dps1000 = 0b10,
-    Dps2000 = 0b11,
+    Dps250 = 0b000, // Datasheet says 245 and 250 in different locations?
+    Dps500 = 0b001,
+    Dps1000 = 0b010,
+    Dps2000 = 0b011,
 }
 
 const DATA_RATE: u8 = 0b1010; // 6.66kHz
@@ -32,19 +32,19 @@ impl From<GyroscopeFullScaleSelection> for AngularRateSensorControl {
     fn from(value: GyroscopeFullScaleSelection) -> Self {
         Self {
             data_rate: DATA_RATE,
-            dps125: false,
             full_scale: value,
         }
     }
 }
 
 impl GyroscopeFullScaleSelection {
-    pub fn as_velocity(self) -> AngularVelocity {
+    pub fn as_velocity_per_lsb(self) -> AngularVelocity {
         AngularVelocity::new::<degree_per_second>(match self {
-            GyroscopeFullScaleSelection::Dps245 => 245.0,
-            GyroscopeFullScaleSelection::Dps500 => 500.0,
-            GyroscopeFullScaleSelection::Dps1000 => 1000.0,
-            GyroscopeFullScaleSelection::Dps2000 => 2000.0,
+            Self::Dps125 => 4.375e-3,
+            Self::Dps250 => 8.75e-3,
+            Self::Dps500 => 17.5e-3,
+            Self::Dps1000 => 35e-3,
+            Self::Dps2000 => 70e-3,
         })
     }
 }
@@ -71,13 +71,13 @@ impl From<AccelerometerFullScaleSelection> for AccelerometerControl {
 }
 
 impl AccelerometerFullScaleSelection {
-    pub fn as_velocity(self) -> Velocity {
-        Velocity::new::<meter_per_second>(match self {
-            AccelerometerFullScaleSelection::PM2G => G * 2.0,
-            AccelerometerFullScaleSelection::PM16G => G * 16.0,
-            AccelerometerFullScaleSelection::PM4G => G * 4.0,
-            AccelerometerFullScaleSelection::PM8G => G * 8.0,
-        })
+    pub fn as_acceleration_per_lsb(self) -> Acceleration {
+        match self {
+            Self::PM2G => G * 0.061e-3,
+            Self::PM16G => G * 0.122e-3,
+            Self::PM4G => G * 0.244e-3,
+            Self::PM8G => G * 0.488e-3,
+        }
     }
 }
 
@@ -105,10 +105,7 @@ declare_registers! {
     }
 
     AngularRateSensorControl (0x11, 1, Read, Write) {
-        #[skip(1)]
-        #[bits(1)]
-        dps125: bool,
-        #[bits(2)]
+        #[bits(3)]
         full_scale: GyroscopeFullScaleSelection,
         #[bits(4)]
         data_rate: u8,
@@ -156,24 +153,22 @@ impl<D: SpiDevice> Imu for Lsm6ds3tr<D> {
     ) -> Result<Vector<3, AngularVelocity>, RegisterError<D::Error>> {
         let GyroscopeOutputAll { x, y, z } = self.read_register()?;
 
-        let ratios = [x, y, z].map(|val| val as f32 / i16::MAX as f32);
+        let gyroscope_sensitivity = self.gyroscope_full_scale.as_velocity_per_lsb();
 
-        let full_scale_velocity = self.gyroscope_full_scale.as_velocity();
-
-        let velocities = ratios.map(|ratio| ratio * full_scale_velocity);
+        let velocities = [x, y, z].map(|val| val as f32 * gyroscope_sensitivity);
 
         Ok(Vector::from_array(velocities))
     }
 
-    fn get_linear_velocity(&mut self) -> Result<Vector<3, Velocity>, RegisterError<D::Error>> {
+    fn get_linear_acceleration(
+        &mut self,
+    ) -> Result<Vector<3, Acceleration>, RegisterError<D::Error>> {
         let AccelerometerOutputAll { x, y, z } = self.read_register()?;
 
-        let ratios = [x, y, z].map(|val| val as f32 / i32::MAX as f32);
+        let accelerometer_sensitivity = self.accelerometer_full_scale.as_acceleration_per_lsb();
 
-        let full_scale_velocity = self.accelerometer_full_scale.as_velocity();
+        let accelerations = [x, y, z].map(|val| val as f32 * accelerometer_sensitivity);
 
-        let velocities = ratios.map(|ratio| ratio * full_scale_velocity);
-
-        Ok(Vector::from_array(velocities))
+        Ok(Vector::from_array(accelerations))
     }
 }

@@ -2,13 +2,14 @@
 
 use core::{
     fmt::Debug,
+    marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 
 use embedded_hal::spi::SpiDevice;
 use heapless::Deque;
 use linalg::vector::Vector;
-use uom::si::f32::{AngularVelocity, Velocity};
+use uom::si::f32::{Acceleration, AngularVelocity};
 
 use crate::registers::{ReadRegister, RegisterError, WriteRegister};
 
@@ -16,14 +17,18 @@ pub mod macros;
 pub mod modules;
 pub mod registers;
 
-pub const G: f32 = 9.80665;
+pub const G: Acceleration = Acceleration {
+    value: 9.80665,
+    dimension: PhantomData,
+    units: PhantomData,
+};
 
 pub trait Imu {
     type Error: Debug;
 
     fn get_angular_velocity(&mut self) -> Result<Vector<3, AngularVelocity>, Self::Error>;
 
-    fn get_linear_velocity(&mut self) -> Result<Vector<3, Velocity>, Self::Error>;
+    fn get_linear_acceleration(&mut self) -> Result<Vector<3, Acceleration>, Self::Error>;
 }
 
 pub trait SpiImu<D: SpiDevice> {
