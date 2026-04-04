@@ -24,7 +24,7 @@ pub struct Odometry<const N: usize> {
 impl<const N: usize> Odometry<N> {
     pub fn new(wheels: [TrackingWheel; N]) -> Self {
         let d =
-            Matrix::<N, 2, Ratio>::from(wheels.map(|wheel| wheel.direction.to_array())).transpose();
+            Matrix::<N, 2, Ratio>::from(wheels.map(|wheel| wheel.direction.into_array())).transpose();
 
         let ddt = d.product(d.transpose());
 
@@ -57,7 +57,7 @@ impl<const N: usize> Odometry<N> {
         let true_travel = self
             .weighting_matrix
             .transpose()
-            .product(travels.into())
+            .product(Vector::from_array(travels))
             .rotate(self.global_angle)
             .bend(angle_change);
 

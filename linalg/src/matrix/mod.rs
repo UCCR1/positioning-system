@@ -46,7 +46,11 @@ impl<const M: usize, const N: usize, T: Copy> Matrix<M, N, T> {
     }
 
     pub fn from_col_vectors(cols: [Vector<M, T>; N]) -> Self {
-        Self::from_cols(cols.map(|col| col.to_array()))
+        Self::from_cols(cols.map(|col| col.into_array()))
+    }
+
+    pub fn into<I>(self) -> Matrix<M, N, I> where T: Into<I> {
+        Matrix(array::from_fn(|i| array::from_fn(|j| self[i][j].into())))
     }
 
     pub fn product<const B: usize, R: Copy, O>(self, rhs: Matrix<N, B, R>) -> Matrix<M, B, O>

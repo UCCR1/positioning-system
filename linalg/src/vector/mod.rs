@@ -20,14 +20,14 @@ impl<const N: usize, T> IntoIterator for Vector<N, T> {
     }
 }
 
-impl<const N: usize, T> From<[T; N]> for Vector<N, T> {
-    fn from(value: [T; N]) -> Self {
+impl<const N: usize, T> Vector<N, T> {
+    pub fn from_array(value: [T; N]) -> Self {
         Self(value.map(|x| [x]))
     }
 }
 
 impl<const N: usize, T: Copy> Vector<N, T> {
-    pub fn to_array(self) -> [T; N] {
+    pub fn into_array(self) -> [T; N] {
         self.0.map(|[x]| x)
     }
 
@@ -105,12 +105,11 @@ impl<T> Vector<3, T> {
         T: Copy + Mul<T, Output = O>,
         O: Sub<O, Output = O>,
     {
-        [
+        Vector::<3, O>::from_array([
             self.y() * rhs.z() - rhs.y() * self.z(),
             self.z() * rhs.x() - rhs.z() * self.x(),
             self.x() * rhs.y() - rhs.x() * self.y(),
-        ]
-        .into()
+        ])        
     }
 }
 

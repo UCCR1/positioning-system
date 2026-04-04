@@ -7,47 +7,60 @@ use esp_hal::{
     gpio::{Input, Output},
     spi::master::Spi,
 };
-use imu_lib::{Imu, modules::lsm6ds3tr::Lsm6ds3tr, registers::RegisterError};
-use linalg::vector::Vector;
-use num_traits::{ConstZero, Zero};
+use imu_lib::{Imu, modules::lsm6dsv::Lsm6dsv, registers::RegisterError};
+use linalg::{quaternion::{Quaternion, UnitQuaternion}, vector::Vector};
+use num_traits::{Zero};
 use uom::si::{
-    f32::{Angle, AngularVelocity, Time},
-    time::microsecond,
+    angle::{degree, radian}, angular_velocity::degree_per_second, f32::{Angle, AngularVelocity, Ratio, Time}, time::microsecond
 };
 
 pub static HEADING_SIGNAL: Signal<CriticalSectionRawMutex, Angle> = Signal::new();
 
 async fn imu_task<'a, D: SpiDevice>(
-    mut imu: Lsm6ds3tr<D>,
+    mut imu: Lsm6dsv<D>,
     mut int1: Input<'static>,
 ) -> Result<(), RegisterError<D::Error>> {
-    let mut angle = Angle::ZERO;
+    let mut current_quat: UnitQuaternion<Ratio> = UnitQuaternion::identity();
 
-    let mut last_velocity: Vector<3, AngularVelocity> = Vector::zero();
     let mut last_time = Instant::now();
 
+    let mut i = 0;
     loop {
-        int1.wait_for_rising_edge().await;
+        // int1.wait_for_rising_edge().await;
 
-        let current_velocity = imu.get_angular_velocity()?;
+        embassy_time::Timer::after_millis(5).await;
+
+        let mut current_velocity = imu.get_angular_velocity()?;
         let current_time = Instant::now();
+
+        // TODO: Use actual calibration
+        current_velocity[2][0] -= AngularVelocity::new::<degree_per_second>(-0.422830138554562);
 
         let dt = Time::new::<microsecond>((current_time - last_time).as_micros() as f32);
         last_time = current_time;
 
-        let avg_y: AngularVelocity = (last_velocity + current_velocity).y() * 0.5;
+        let angle: Vector<3, Angle
+        > = (current_velocity * dt * 0.5).into();
 
-        angle += (avg_y * dt).into();
+        let dq = Quaternion::from_array([Angle::new::<radian>(1.0), angle.x(), angle.y(), angle.z()]);
 
-        last_velocity = current_velocity;
+        current_quat = current_quat.hamilton_product(dq).normalized();
 
-        HEADING_SIGNAL.signal(angle);
+        if (i >= 20) {
+            i = 0;
+
+            esp_println::println!("theta: {} deg", current_quat.yaw().get::<degree>())
+        }  else {
+            i += 1;
+        }
+
+        // HEADING_SIGNAL.signal(angle);
     }
 }
 
 #[embassy_executor::task]
 pub async fn start_imu_task(
-    imu: Lsm6ds3tr<ExclusiveDevice<Spi<'static, Blocking>, Output<'static>, NoDelay>>,
+    imu: Lsm6dsv<ExclusiveDevice<Spi<'static, Blocking>, Output<'static>, NoDelay>>,
     int1: Input<'static>,
 ) {
     imu_task(imu, int1).await.unwrap();

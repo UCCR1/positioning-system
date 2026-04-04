@@ -14,7 +14,7 @@ use crate::vector;
 /// UnitVectors cannot be instantiated directly, they are created by calling
 /// .normalized() on a regular Vector
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct UnitVector<const N: usize, T>(Vector<N, T>);
+pub struct UnitVector<const N: usize, T>(pub(crate) Vector<N, T>);
 
 impl UnitVector<2, Ratio> {
     pub fn from_angle(angle: Angle) -> Self {

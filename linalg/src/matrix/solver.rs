@@ -45,7 +45,7 @@ impl<const M: usize, const N: usize, T: Copy> Matrix<M, N, T> {
             }
         }
 
-        Some(result.into())
+        Some(Vector::<N, O>::from_array(result))
     }
 }
 

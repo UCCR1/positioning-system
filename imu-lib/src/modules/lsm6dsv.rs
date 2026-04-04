@@ -9,42 +9,39 @@ use uom::si::{
 
 use crate::{G, Imu, SpiImu, declare_registers, registers::RegisterError};
 
-#[derive(TryFromPrimitive, IntoPrimitive)]
+
+#[derive(TryFromPrimitive, IntoPrimitive, Copy, Clone, Debug, Default)]
 #[repr(u8)]
-pub enum AnalogBandwidth {
-    _1500Hz = 0,
-    _400Hz = 1,
+pub enum OperatingMode {
+    #[default]
+    HighPerformance = 0b000,
+    HighAccuracyODR = 0b001,
+    ODRTriggered = 0b011,
+    SleepMode = 0b100,
+    LowPowerMode = 0b101,
 }
 
 #[derive(TryFromPrimitive, IntoPrimitive, Copy, Clone, Debug, Default)]
 #[repr(u8)]
 pub enum GyroscopeFullScaleSelection {
     #[default]
-    Dps245 = 0b00,
-    Dps500 = 0b01,
-    Dps1000 = 0b10,
-    Dps2000 = 0b11,
-}
-
-const DATA_RATE: u8 = 0b1010; // 6.66kHz
-
-impl From<GyroscopeFullScaleSelection> for AngularRateSensorControl {
-    fn from(value: GyroscopeFullScaleSelection) -> Self {
-        Self {
-            data_rate: DATA_RATE,
-            dps125: false,
-            full_scale: value,
-        }
-    }
+    Dps125 = 0b0000,
+    Dps250 = 0b0001,
+    Dps500 = 0b0010,
+    Dps1000 = 0b0011,
+    Dps2000 = 0b0100,
+    Dps4000 = 0b1100,
 }
 
 impl GyroscopeFullScaleSelection {
     pub fn as_velocity(self) -> AngularVelocity {
         AngularVelocity::new::<degree_per_second>(match self {
-            GyroscopeFullScaleSelection::Dps245 => 245.0,
-            GyroscopeFullScaleSelection::Dps500 => 500.0,
-            GyroscopeFullScaleSelection::Dps1000 => 1000.0,
-            GyroscopeFullScaleSelection::Dps2000 => 2000.0,
+            Self::Dps125 => 125.0,
+            Self::Dps250 => 250.0,
+            Self::Dps500 => 500.0,
+            Self::Dps1000 => 1000.0,
+            Self::Dps2000 => 2000.0,
+            Self::Dps4000 => 4000.0,
         })
     }
 }
@@ -54,29 +51,18 @@ impl GyroscopeFullScaleSelection {
 pub enum AccelerometerFullScaleSelection {
     #[default]
     PM2G = 0b00,
-    PM16G = 0b01,
-    PM4G = 0b10,
-    PM8G = 0b11,
-}
-
-impl From<AccelerometerFullScaleSelection> for AccelerometerControl {
-    fn from(value: AccelerometerFullScaleSelection) -> Self {
-        Self {
-            data_rate: DATA_RATE,
-            full_scale: value,
-            analog_bandwidth_selection: AnalogBandwidth::_400Hz,
-            digital_bandwidth_selection: false,
-        }
-    }
+    PM4G = 0b01,
+    PM8G = 0b10,
+    PM16G = 0b11,
 }
 
 impl AccelerometerFullScaleSelection {
     pub fn as_velocity(self) -> Velocity {
         Velocity::new::<meter_per_second>(match self {
             AccelerometerFullScaleSelection::PM2G => G * 2.0,
-            AccelerometerFullScaleSelection::PM16G => G * 16.0,
             AccelerometerFullScaleSelection::PM4G => G * 4.0,
             AccelerometerFullScaleSelection::PM8G => G * 8.0,
+            AccelerometerFullScaleSelection::PM16G => G * 16.0,
         })
     }
 }
@@ -94,36 +80,28 @@ declare_registers! {
         pub z: i16,
     }
 
-    AccelerometerControl (0x10, 1, Read, Write) {
-        #[bits(1)]
-        pub analog_bandwidth_selection: AnalogBandwidth,
-        pub digital_bandwidth_selection: bool,
-        #[bits(2)]
-        pub full_scale: AccelerometerFullScaleSelection,
-        #[bits(4)]
-        pub data_rate: u8,
-    }
-
-    AngularRateSensorControl (0x11, 1, Read, Write) {
-        #[skip(1)]
-        #[bits(1)]
-        dps125: bool,
-        #[bits(2)]
-        full_scale: GyroscopeFullScaleSelection,
+    GyroscopeControl (0x11, 1, Read, Write) {
         #[bits(4)]
         data_rate: u8,
+        #[bits(3)]
+        operating_mode: OperatingMode,
     }
 }
 
-pub struct Lsm6ds3tr<D: SpiDevice> {
+pub struct Lsm6dsv<D: SpiDevice> {
     device: D,
 
     gyroscope_full_scale: GyroscopeFullScaleSelection,
     accelerometer_full_scale: AccelerometerFullScaleSelection,
 }
 
-impl<D: SpiDevice> Lsm6ds3tr<D> {
-    pub fn new(device: D) -> Self {
+impl<D: SpiDevice> Lsm6dsv<D> {
+    pub fn new(mut device: D) -> Self {
+        crate::registers::WriteRegister::write(GyroscopeControl {
+            data_rate: 0b1100, // 7.68kHz,
+            operating_mode: OperatingMode::HighPerformance,
+        }, &mut device).unwrap();
+
         Self {
             device,
 
@@ -131,24 +109,15 @@ impl<D: SpiDevice> Lsm6ds3tr<D> {
             accelerometer_full_scale: Default::default(),
         }
     }
-
-    pub fn set_gyroscope_full_scale(
-        &mut self,
-        full_scale: GyroscopeFullScaleSelection,
-    ) -> Result<(), RegisterError<D::Error>> {
-        self.gyroscope_full_scale = full_scale;
-
-        self.write_register(AngularRateSensorControl::from(full_scale))
-    }
 }
 
-impl<D: SpiDevice> SpiImu<D> for Lsm6ds3tr<D> {
+impl<D: SpiDevice> SpiImu<D> for Lsm6dsv<D> {
     fn device(&mut self) -> &mut D {
         &mut self.device
     }
 }
 
-impl<D: SpiDevice> Imu for Lsm6ds3tr<D> {
+impl<D: SpiDevice> Imu for Lsm6dsv<D> {
     type Error = RegisterError<D::Error>;
 
     fn get_angular_velocity(

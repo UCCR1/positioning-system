@@ -11,7 +11,7 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use esp_println::println;
-use imu_lib::modules::lsm6ds3tr::Lsm6ds3tr;
+use imu_lib::modules::lsm6dsv::Lsm6dsv;
 use linalg::{real_vector, vector::real::UnitVector};
 use position_lib::odometry::TrackingWheel;
 use uom::si::{
@@ -78,7 +78,7 @@ async fn main(spawner: Spawner) {
     let int1 = Input::new(_peripherals.GPIO34, interrupts_config);
 
     spawner
-        .spawn(start_imu_task(Lsm6ds3tr::new(spi_device), int1))
+        .spawn(start_imu_task(Lsm6dsv::new(spi_device), int1))
         .unwrap();
 
     let odometry = OdometryTask::new(
