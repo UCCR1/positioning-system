@@ -19,6 +19,7 @@ macro_rules! declare_registers {
         $name:ident ($address:literal, $bytes:literal, $($types:ident),+) $body:tt
     )*} => {
         $(
+            #[derive(Debug)]
             #[packbits::pack(bytes = $bytes)]
             pub struct $name $body
 

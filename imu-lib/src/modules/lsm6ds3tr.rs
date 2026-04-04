@@ -9,7 +9,7 @@ use uom::si::{
 
 use crate::{G, Imu, SpiImu, declare_registers, registers::RegisterError};
 
-#[derive(TryFromPrimitive, IntoPrimitive)]
+#[derive(TryFromPrimitive, IntoPrimitive, Debug)]
 #[repr(u8)]
 pub enum AnalogBandwidth {
     _1500Hz = 0,
