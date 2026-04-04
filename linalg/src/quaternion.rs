@@ -12,9 +12,17 @@ use crate::vector::{Vector, real::UnitVector};
 pub type UnitQuaternion<T> = UnitVector<4, T>;
 pub type Quaternion<T> = Vector<4, T>;
 
-impl<T> UnitQuaternion<T> where T: Zero + One {
+impl<T> UnitQuaternion<T>
+where
+    T: Zero + One,
+{
     pub fn identity() -> Self {
-        Self(Quaternion::from_array([T::one(), T::zero(), T::zero(), T::zero()]))
+        Self(Quaternion::from_array([
+            T::one(),
+            T::zero(),
+            T::zero(),
+            T::zero(),
+        ]))
     }
 }
 
@@ -52,7 +60,7 @@ impl<T: Copy> Quaternion<T> {
 impl Quaternion<Ratio> {
     pub fn roll(self) -> Angle {
         Angle::new::<radian>(
-            (2.0 * (self.w() * self.y() + self.z() * self.x()))
+            (2.0 * (self.w() * self.x() + self.y() * self.z()))
                 .get::<ratio>()
                 .atan2(
                     (Ratio::one() - 2.0 * (self.x() * self.x() + self.y() * self.y()))
@@ -67,7 +75,7 @@ impl Quaternion<Ratio> {
 
     pub fn yaw(self) -> Angle {
         Angle::new::<radian>(
-            (2.0 * (self.w() * self.x() + self.y() * self.z()))
+            (2.0 * (self.w() * self.z() + self.x() * self.y()))
                 .get::<ratio>()
                 .atan2(
                     (Ratio::one() - 2.0 * (self.y() * self.y() + self.z() * self.z()))
@@ -75,5 +83,4 @@ impl Quaternion<Ratio> {
                 ),
         )
     }
-
 }
