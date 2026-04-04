@@ -53,6 +53,7 @@ name = "imu-lib"
 version = "0.1.0"
 dependencies = [
  "embedded-hal",
+ "heapless",
  "linalg",
  "num_enum",
  "packbits",

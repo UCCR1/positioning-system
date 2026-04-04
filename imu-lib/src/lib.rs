@@ -1,8 +1,12 @@
 #![no_std]
 
-use core::fmt::Debug;
+use core::{
+    fmt::Debug,
+    ops::{Deref, DerefMut},
+};
 
 use embedded_hal::spi::SpiDevice;
+use heapless::Deque;
 use linalg::vector::Vector;
 use uom::si::f32::{AngularVelocity, Velocity};
 
@@ -38,5 +42,83 @@ pub trait SpiImu<D: SpiDevice> {
         value.write(self.device())?;
 
         Ok(())
+    }
+}
+
+pub struct CalibratableImu<const N: usize, T> {
+    imu: T,
+
+    gyroscopic_drift: Vector<3, AngularVelocity>,
+
+    gyroscope_calibration_samples: Deque<Vector<3, AngularVelocity>, N>,
+}
+
+impl<const N: usize, T: Imu> CalibratableImu<N, T> {
+    pub fn new(imu: T) -> Self {
+        Self {
+            imu,
+
+            gyroscopic_drift: Vector::default(),
+
+            gyroscope_calibration_samples: Deque::new(),
+        }
+    }
+
+    fn compute_statistics(&mut self) {
+        self.gyroscopic_drift = Vector::default();
+
+        for sample in &self.gyroscope_calibration_samples {
+            self.gyroscopic_drift += *sample;
+        }
+
+        self.gyroscopic_drift =
+            self.gyroscopic_drift / self.gyroscope_calibration_samples.len() as f32;
+    }
+
+    pub fn reset_calibration(&mut self) {
+        self.gyroscope_calibration_samples = Deque::new();
+        self.gyroscopic_drift = Vector::default();
+    }
+
+    pub fn calibration_complete(&self) -> bool {
+        self.gyroscope_calibration_samples.is_full()
+    }
+
+    pub fn calibrate(&mut self) -> Result<(), T::Error> {
+        let gyroscope_reading = self.get_angular_velocity()?;
+
+        if self.gyroscope_calibration_samples.is_full() {
+            self.gyroscope_calibration_samples.pop_front();
+        }
+
+        let _ = self
+            .gyroscope_calibration_samples
+            .push_back(gyroscope_reading);
+
+        self.compute_statistics();
+
+        Ok(())
+    }
+
+    pub fn get_calibrated_angular_velocity(
+        &mut self,
+    ) -> Result<Vector<3, AngularVelocity>, T::Error> {
+        let reading = self.get_angular_velocity()?;
+
+        Ok(reading - self.gyroscopic_drift)
+    }
+}
+
+impl<const N: usize, T> Deref for CalibratableImu<N, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.imu
+    }
+}
+
+impl<const N: usize, T> DerefMut for CalibratableImu<N, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.imu
     }
 }

@@ -9,3 +9,4 @@ linalg = { path = "../linalg" }
 packbits = "0.1.1"
 num_enum = { version = "0.7.5", default-features = false }
 embedded-hal = "1.0.0"
+heapless.workspace = true

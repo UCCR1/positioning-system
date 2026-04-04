@@ -71,14 +71,14 @@ pub enum GyroscopeFullScaleSelection {
 }
 
 impl GyroscopeFullScaleSelection {
-    pub fn as_velocity(self) -> AngularVelocity {
+    pub fn as_velocity_per_lsb(self) -> AngularVelocity {
         AngularVelocity::new::<degree_per_second>(match self {
-            Self::Dps125 => 125.0,
-            Self::Dps250 => 250.0,
-            Self::Dps500 => 500.0,
-            Self::Dps1000 => 1000.0,
-            Self::Dps2000 => 2000.0,
-            Self::Dps4000 => 4000.0,
+            Self::Dps125 => 4.375e-3,
+            Self::Dps250 => 8.75e-3,
+            Self::Dps500 => 17.5e-3,
+            Self::Dps1000 => 35e-3,
+            Self::Dps2000 => 70e-3,
+            Self::Dps4000 => 140e-3,
         })
     }
 }
@@ -274,11 +274,9 @@ impl<D: SpiDevice> Imu for Lsm6dsv<D> {
     ) -> Result<Vector<3, AngularVelocity>, RegisterError<D::Error>> {
         let GyroscopeOutputAll { x, y, z } = self.read_register()?;
 
-        let ratios = [x, y, z].map(|val| val as f32 / i16::MAX as f32);
+        let full_scale_velocity = self.gyroscope_full_scale.as_velocity_per_lsb();
 
-        let full_scale_velocity = self.gyroscope_full_scale.as_velocity();
-
-        let velocities = ratios.map(|ratio| ratio * full_scale_velocity);
+        let velocities = [x, y, z].map(|val| val as f32 * full_scale_velocity);
 
         Ok(Vector::from_array(velocities))
     }
