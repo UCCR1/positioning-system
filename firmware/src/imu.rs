@@ -4,7 +4,7 @@ use embedded_hal::spi::SpiDevice;
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use esp_hal::{
     Blocking,
-    gpio::{AnyPin, Input, InputConfig, Output, Pull},
+    gpio::{Input, Output},
     spi::master::Spi,
 };
 use imu_lib::{Imu, modules::lsm6ds3tr::Lsm6ds3tr, registers::RegisterError};
@@ -20,7 +20,6 @@ pub static HEADING_SIGNAL: Signal<CriticalSectionRawMutex, Angle> = Signal::new(
 async fn imu_task<'a, D: SpiDevice>(
     mut imu: Lsm6ds3tr<D>,
     mut int1: Input<'static>,
-    mut int2: Input<'static>,
 ) -> Result<(), RegisterError<D::Error>> {
     let mut angle = Angle::ZERO;
 
@@ -50,7 +49,6 @@ async fn imu_task<'a, D: SpiDevice>(
 pub async fn start_imu_task(
     imu: Lsm6ds3tr<ExclusiveDevice<Spi<'static, Blocking>, Output<'static>, NoDelay>>,
     int1: Input<'static>,
-    int2: Input<'static>,
 ) {
-    imu_task(imu, int1, int2).await.unwrap();
+    imu_task(imu, int1).await.unwrap();
 }
