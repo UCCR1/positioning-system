@@ -7,7 +7,7 @@ use uom::si::{
 };
 
 use crate::{
-    AngularVelocitySensor, G, LinearAccelerationSensor, SpiImu, declare_registers,
+    AngularVelocitySensor, G, LinearAccelerationSensor, RegisterDevice, declare_registers,
     registers::RegisterError,
 };
 
@@ -142,7 +142,7 @@ impl<D: SpiDevice> Lsm6ds3tr<D> {
     }
 }
 
-impl<D: SpiDevice> SpiImu<D> for Lsm6ds3tr<D> {
+impl<D: SpiDevice> RegisterDevice<D> for Lsm6ds3tr<D> {
     fn device(&mut self) -> &mut D {
         &mut self.device
     }

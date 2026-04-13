@@ -4,12 +4,11 @@ use core::{fmt::Debug, marker::PhantomData};
 
 use embedded_hal::spi::SpiDevice;
 use linalg::{quaternion::UnitQuaternion, vector::Vector};
-use uom::si::f32::{Acceleration, AngularVelocity, Ratio};
+use uom::si::f32::{Acceleration, AngularVelocity, Length, Ratio, Velocity};
 
 use crate::registers::{ReadRegister, RegisterError, WriteRegister};
 
-pub mod calibrateable;
-pub mod integrator;
+pub mod inertial_sensor;
 pub mod macros;
 pub mod modules;
 pub mod registers;
@@ -38,7 +37,19 @@ pub trait LinearAccelerationSensor {
     fn get_linear_acceleration(&mut self) -> Result<Vector<3, Acceleration>, Self::Error>;
 }
 
-pub trait SpiImu<D: SpiDevice> {
+pub trait LinearVelocitySensor {
+    type Error: Debug;
+
+    fn get_linear_velocity(&mut self) -> Result<Vector<3, Velocity>, Self::Error>;
+}
+
+pub trait LinearPositionSensor {
+    type Error: Debug;
+
+    fn get_linear_position(&mut self) -> Result<Vector<3, Length>, Self::Error>;
+}
+
+pub(crate) trait RegisterDevice<D: SpiDevice> {
     fn device(&mut self) -> &mut D;
 
     fn read_register<const N: usize, T: ReadRegister<N>>(

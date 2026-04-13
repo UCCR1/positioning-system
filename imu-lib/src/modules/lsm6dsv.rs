@@ -8,13 +8,13 @@ use uom::si::{
 };
 
 use crate::{
-    AngularVelocitySensor, G, LinearAccelerationSensor, SpiImu, declare_registers,
+    AngularVelocitySensor, G, LinearAccelerationSensor, RegisterDevice, declare_registers,
     registers::RegisterError,
 };
 
 #[derive(TryFromPrimitive, IntoPrimitive, Copy, Clone, Debug, Default)]
 #[repr(u8)]
-pub enum OperatingMode {
+pub enum GyroscopeOperatingMode {
     #[default]
     HighPerformance = 0b000,
     HighAccuracyODR = 0b001,
@@ -28,6 +28,38 @@ pub enum OperatingMode {
 pub enum GyroscopeDataRate {
     #[default]
     Off = 0b0000,
+    _7_5Hz = 0b0010,
+    _15Hz = 0b0011,
+    _30Hz = 0b0100,
+    _60Hz = 0b0101,
+    _120Hz = 0b0110,
+    _240Hz = 0b0111,
+    _480Hz = 0b1000,
+    _960Hz = 0b1001,
+    _1_92Khz = 0b1010,
+    _3_84Khz = 0b1011,
+    _7_68Khz = 0b1100,
+}
+
+#[derive(TryFromPrimitive, IntoPrimitive, Copy, Clone, Debug, Default)]
+#[repr(u8)]
+pub enum AccelerometerOperatingMode {
+    #[default]
+    HighPerformance = 0b000,
+    HighAccuracyODR = 0b001,
+    ODRTriggered = 0b011,
+    LowPowerMode1 = 0b100,
+    LowPowerMode2 = 0b101,
+    LowPowerMode3 = 0b110,
+    NormalMode = 0b111,
+}
+
+#[derive(TryFromPrimitive, IntoPrimitive, Copy, Clone, Debug, Default)]
+#[repr(u8)]
+pub enum AccelerometerDataRate {
+    #[default]
+    Off = 0b0000,
+    _1_875Hz = 0b0001,
     _7_5Hz = 0b0010,
     _15Hz = 0b0011,
     _30Hz = 0b0100,
@@ -119,11 +151,18 @@ declare_registers! {
         pub z: i16,
     }
 
+    AccelerometerControlRegister2 (0x10, 1, Read, Write) {
+        #[bits(4)]
+        data_rate: AccelerometerDataRate,
+        #[bits(3)]
+        operating_mode: AccelerometerOperatingMode,
+    }
+
     GyroscopeControlRegister2 (0x11, 1, Read, Write) {
         #[bits(4)]
         data_rate: GyroscopeDataRate,
         #[bits(3)]
-        operating_mode: OperatingMode,
+        operating_mode: GyroscopeOperatingMode,
     }
 
     GyroscopeControlRegister6 (0x15, 1, Read, Write) {
@@ -132,6 +171,15 @@ declare_registers! {
         #[bits(3)]
         lpf_bandwidth: u8,
     }
+
+    AccelerometerControlRegister8 (0x17, 1, Read, Write) {
+        #[bits(2)]
+        full_scale: AccelerometerFullScaleSelection,
+        dual_channel_mode: bool,
+        #[bits(3)]
+        lpf_bandwidth: u8,
+    }
+
 
     Interrupt1Control (0x0D, 1, Read, Write) {
         accelerometer_data_ready: bool,
@@ -163,13 +211,13 @@ declare_registers! {
     }
 
     StatusRegister (0x1E, 1, Read) {
-        accelerometer_data_ready: bool,
-        gyroscope_data_ready: bool,
-        temperature_data_ready: bool,
+        pub accelerometer_data_ready: bool,
+        pub gyroscope_data_ready: bool,
+        pub temperature_data_ready: bool,
         #[skip(1)]
-        eis_gyroscope_data_ready: bool,
-        ois_accelerometer_or_gyroscope_data_ready: bool,
-        timestamp_endcount: bool,
+        pub eis_gyroscope_data_ready: bool,
+        pub ois_accelerometer_or_gyroscope_data_ready: bool,
+        pub timestamp_endcount: bool,
     }
 }
 
@@ -196,7 +244,17 @@ impl<D: SpiDevice> Lsm6dsv<D> {
     ) -> Result<(), RegisterError<D::Error>> {
         self.write_register(GyroscopeControlRegister2 {
             data_rate,
-            operating_mode: OperatingMode::HighPerformance,
+            operating_mode: GyroscopeOperatingMode::HighPerformance,
+        })
+    }
+
+    pub fn set_accelerometer_data_rate(
+        &mut self,
+        data_rate: AccelerometerDataRate,
+    ) -> Result<(), RegisterError<D::Error>> {
+        self.write_register(AccelerometerControlRegister2 {
+            data_rate,
+            operating_mode: AccelerometerOperatingMode::HighPerformance,
         })
     }
 
@@ -255,14 +313,25 @@ impl<D: SpiDevice> Lsm6dsv<D> {
         })
     }
 
-    pub fn gyroscope_data_ready(&mut self) -> Result<bool, RegisterError<D::Error>> {
-        let status: StatusRegister = self.read_register()?;
+    pub fn set_accelerometer_full_scale(
+        &mut self,
+        full_scale: AccelerometerFullScaleSelection,
+    ) -> Result<(), RegisterError<D::Error>> {
+        self.accelerometer_full_scale = full_scale;
 
-        Ok(status.gyroscope_data_ready)
+        self.write_register(AccelerometerControlRegister8 {
+            lpf_bandwidth: 0,
+            dual_channel_mode: false,
+            full_scale,
+        })
+    }
+
+    pub fn get_status_register(&mut self) -> Result<StatusRegister, RegisterError<D::Error>> {
+        self.read_register()
     }
 }
 
-impl<D: SpiDevice> SpiImu<D> for Lsm6dsv<D> {
+impl<D: SpiDevice> RegisterDevice<D> for Lsm6dsv<D> {
     fn device(&mut self) -> &mut D {
         &mut self.device
     }

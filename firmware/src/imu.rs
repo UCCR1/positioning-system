@@ -6,52 +6,74 @@ use esp_hal::{
     gpio::{Input, Output},
     spi::master::Spi,
 };
-use esp_println::println;
 use imu_lib::{
     AngularPositionSensor, LinearAccelerationSensor,
-    calibrateable::CalibratableImu,
-    integrator::AngularVelocityIntegrator,
-    modules::lsm6dsv::{GyroscopeDataRate, GyroscopeFullScaleSelection, Lsm6dsv},
+    inertial_sensor::{InertialSensor, InertialSensorError},
+    modules::lsm6dsv::{
+        AccelerometerDataRate, AccelerometerFullScaleSelection, GyroscopeDataRate,
+        GyroscopeFullScaleSelection, Lsm6dsv,
+    },
     registers::RegisterError,
 };
-use uom::si::f32::{Angle, Frequency};
+use linalg::vector::Vector;
+use uom::si::{
+    f32::{Acceleration, Angle, Frequency},
+    frequency::hertz,
+};
 
 pub static HEADING_SIGNAL: Signal<CriticalSectionRawMutex, Angle> = Signal::new();
-
-const IMU_FREQUENCY: GyroscopeDataRate = GyroscopeDataRate::_240Hz;
-
-const NUM_CALIBRATION_SAMPLES: usize = 500;
+pub static ACCELERATION_SIGNAL: Signal<CriticalSectionRawMutex, Vector<3, Acceleration>> =
+    Signal::new();
 
 async fn imu_task<'a, D: SpiDevice>(
     mut imu: Lsm6dsv<D>,
     mut int1: Input<'static>,
 ) -> Result<(), RegisterError<D::Error>> {
-    imu.set_gyroscope_data_rate(IMU_FREQUENCY)?;
+    imu.set_gyroscope_data_rate(GyroscopeDataRate::_240Hz)?;
+    imu.set_accelerometer_data_rate(AccelerometerDataRate::_240Hz)?;
+
+    imu.set_accelerometer_full_scale(AccelerometerFullScaleSelection::PM16G)?;
     imu.set_gyroscope_full_scale(GyroscopeFullScaleSelection::Dps2000)?;
+
     imu.enable_interrupts(true)?;
-    imu.set_data_ready_interrupts_int1(true, false)?;
+    imu.set_data_ready_interrupts_int1(true, true)?;
 
-    let mut integrating_imu =
-        AngularVelocityIntegrator::new(CalibratableImu::<NUM_CALIBRATION_SAMPLES, _>::new(imu));
+    let mut inertial_sensor = InertialSensor::new(imu);
 
-    let dt = 1.0 / Frequency::from(IMU_FREQUENCY);
+    let dt = 1.0 / Frequency::new::<hertz>(240.0);
 
     loop {
         int1.wait_for_high().await;
 
-        if !integrating_imu.inner().inner().gyroscope_data_ready()? {
+        let status_register = inertial_sensor.device().get_status_register()?;
+
+        if !status_register.gyroscope_data_ready || !status_register.accelerometer_data_ready {
             continue;
         }
 
-        if !integrating_imu.inner().calibration_complete() {
-            integrating_imu.inner().calibrate()?;
+        if !inertial_sensor.calibration_complete() {
+            inertial_sensor.calibrate()?;
 
             continue;
         }
 
-        integrating_imu.poll(dt)?;
+        match inertial_sensor.integrate(dt) {
+            Err(InertialSensorError::IncompleteCalibration) => {
+                inertial_sensor.calibrate()?;
 
-        HEADING_SIGNAL.signal(integrating_imu.get_angular_position()?.yaw());
+                continue;
+            }
+            Err(InertialSensorError::RegisterError(e)) => {
+                return Err(e);
+            }
+            _ => {}
+        }
+
+        let Ok(angular_position) = inertial_sensor.get_angular_position();
+
+        HEADING_SIGNAL.signal(angular_position.yaw());
+
+        ACCELERATION_SIGNAL.signal(inertial_sensor.get_linear_acceleration()?);
     }
 }
 
