@@ -5,7 +5,7 @@ use uom::si::f32::AngularVelocity;
 use crate::{AngularVelocitySensor, LinearAccelerationSensor};
 
 pub struct CalibratableImu<const N: usize, T> {
-    base: T,
+    inner: T,
 
     gyroscopic_drift: Vector<3, AngularVelocity>,
 
@@ -13,9 +13,9 @@ pub struct CalibratableImu<const N: usize, T> {
 }
 
 impl<const N: usize, T> CalibratableImu<N, T> {
-    pub fn new(base: T) -> Self {
+    pub fn new(inner: T) -> Self {
         Self {
-            base,
+            inner,
 
             gyroscopic_drift: Vector::default(),
 
@@ -23,8 +23,8 @@ impl<const N: usize, T> CalibratableImu<N, T> {
         }
     }
 
-    pub fn base(&mut self) -> &mut T {
-        &mut self.base
+    pub fn inner(&mut self) -> &mut T {
+        &mut self.inner
     }
 }
 
@@ -53,7 +53,7 @@ where
     }
 
     pub fn calibrate(&mut self) -> Result<(), E> {
-        let gyroscope_reading = self.base().get_angular_velocity()?;
+        let gyroscope_reading = self.inner().get_angular_velocity()?;
 
         if self.gyroscope_calibration_samples.is_full() {
             self.gyroscope_calibration_samples.pop_front();
@@ -76,7 +76,7 @@ where
     type Error = T::Error;
 
     fn get_angular_velocity(&mut self) -> Result<Vector<3, AngularVelocity>, T::Error> {
-        let reading = self.base().get_angular_velocity()?;
+        let reading = self.inner().get_angular_velocity()?;
 
         Ok(reading - self.gyroscopic_drift)
     }

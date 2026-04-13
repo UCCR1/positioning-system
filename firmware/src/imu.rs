@@ -39,12 +39,12 @@ async fn imu_task<'a, D: SpiDevice>(
     loop {
         int1.wait_for_high().await;
 
-        if !integrating_imu.base().base().gyroscope_data_ready()? {
+        if !integrating_imu.inner().inner().gyroscope_data_ready()? {
             continue;
         }
 
-        if !integrating_imu.base().calibration_complete() {
-            integrating_imu.base().calibrate()?;
+        if !integrating_imu.inner().calibration_complete() {
+            integrating_imu.inner().calibrate()?;
 
             continue;
         }

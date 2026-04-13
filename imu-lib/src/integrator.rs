@@ -10,21 +10,21 @@ use uom::{
 use crate::{AngularPositionSensor, AngularVelocitySensor};
 
 pub struct AngularVelocityIntegrator<T> {
-    base: T,
+    inner: T,
 
     current_rotation: UnitQuaternion<Ratio>,
 }
 
 impl<T> AngularVelocityIntegrator<T> {
-    pub fn new(base: T) -> Self {
+    pub fn new(inner: T) -> Self {
         Self {
-            base,
+            inner,
             current_rotation: UnitQuaternion::identity(),
         }
     }
 
-    pub fn base(&mut self) -> &mut T {
-        &mut self.base
+    pub fn inner(&mut self) -> &mut T {
+        &mut self.inner
     }
 }
 
@@ -51,7 +51,7 @@ impl<T: AngularVelocitySensor> AngularVelocitySensor for AngularVelocityIntegrat
     type Error = T::Error;
 
     fn get_angular_velocity(&mut self) -> Result<Vector<3, AngularVelocity>, Self::Error> {
-        self.base.get_angular_velocity()
+        self.inner.get_angular_velocity()
     }
 }
 
