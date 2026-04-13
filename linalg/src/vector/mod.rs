@@ -5,7 +5,7 @@ use core::{
     ops::{Div, Mul, Neg, Sub},
 };
 
-use num_traits::Zero;
+use num_traits::{One, Zero};
 
 use super::matrix::Matrix;
 
@@ -53,6 +53,30 @@ impl<const N: usize, T: Copy> Vector<N, T> {
         }
 
         target * (target.dot(self) / denom)
+    }
+}
+
+impl<T: One + Zero> Vector<2, T> {
+    pub fn i() -> Self {
+        Self::from_array([T::one(), T::zero()])
+    }
+
+    pub fn j() -> Self {
+        Self::from_array([T::zero(), T::one()])
+    }
+}
+
+impl<T: One + Zero> Vector<3, T> {
+    pub fn i() -> Self {
+        Self::from_array([T::one(), T::zero(), T::zero()])
+    }
+
+    pub fn j() -> Self {
+        Self::from_array([T::zero(), T::one(), T::zero()])
+    }
+
+    pub fn k() -> Self {
+        Self::from_array([T::zero(), T::zero(), T::one()])
     }
 }
 
@@ -109,7 +133,7 @@ impl<T> Vector<3, T> {
             self.y() * rhs.z() - rhs.y() * self.z(),
             self.z() * rhs.x() - rhs.z() * self.x(),
             self.x() * rhs.y() - rhs.x() * self.y(),
-        ])        
+        ])
     }
 }
 

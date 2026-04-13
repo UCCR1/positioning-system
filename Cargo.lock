@@ -55,6 +55,7 @@ dependencies = [
  "embedded-hal",
  "heapless",
  "linalg",
+ "num-traits",
  "num_enum",
  "packbits",
  "thiserror",
@@ -223,7 +224,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 [[package]]
 name = "uom"
 version = "0.38.0"
-source = "git+https://github.com/UCCR1/uom#d41c584a5e5641c6cd672298d2a259624aabff7f"
+source = "git+https://github.com/UCCR1/uom#a7b7241600032b2a61532f0f8e0387d71fc0e472"
 dependencies = [
  "num-traits",
  "typenum",

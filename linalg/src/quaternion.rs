@@ -1,4 +1,4 @@
-use core::ops::{Add, Mul, Sub};
+use core::ops::{Add, Mul, Neg, Sub};
 
 use num_traits::{One, Zero, real::Real};
 use uom::si::{
@@ -12,11 +12,11 @@ use crate::vector::{Vector, real::UnitVector};
 pub type UnitQuaternion<T> = UnitVector<4, T>;
 pub type Quaternion<T> = Vector<4, T>;
 
-impl<T> UnitQuaternion<T>
-where
-    T: Zero + One,
-{
-    pub fn identity() -> Self {
+impl<T> UnitQuaternion<T> {
+    pub fn identity() -> Self
+    where
+        T: Zero + One,
+    {
         Self(Quaternion::from_array([
             T::one(),
             T::zero(),
@@ -54,6 +54,20 @@ impl<T: Copy> Quaternion<T> {
 
     pub fn z(self) -> T {
         self[3][0]
+    }
+
+    pub fn from_direction_component(scalar: T, direction: Vector<3, T>) -> Self {
+        Self::from_array([scalar, direction.x(), direction.y(), direction.z()])
+    }
+
+    pub fn direction_components(self) -> Vector<3, T> {
+        Vector::from_array([self.x(), self.y(), self.z()])
+    }
+}
+
+impl<T: Copy + Neg<Output = T>> Quaternion<T> {
+    pub fn conjugate(self) -> Self {
+        Self::from_array([self.w(), -self.x(), -self.y(), -self.z()])
     }
 }
 

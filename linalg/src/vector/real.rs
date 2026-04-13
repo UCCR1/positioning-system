@@ -4,7 +4,10 @@ use core::{
 };
 
 use num_traits::{ConstOne, ConstZero};
-use uom::si::f32::{Angle, Area, Length, Ratio};
+use uom::{
+    Root,
+    si::f32::{Angle, Length, Ratio},
+};
 
 use super::Vector;
 use crate::vector;
@@ -47,44 +50,6 @@ impl<const N: usize, T> Deref for UnitVector<N, T> {
 impl<const N: usize, T> DerefMut for UnitVector<N, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    }
-}
-
-pub trait Root {
-    type Root;
-
-    fn root(self) -> Self::Root;
-}
-
-impl Root for f32 {
-    type Root = f32;
-
-    fn root(self) -> Self::Root {
-        num_traits::real::Real::sqrt(self)
-    }
-}
-
-impl Root for f64 {
-    type Root = f64;
-
-    fn root(self) -> Self::Root {
-        num_traits::real::Real::sqrt(self)
-    }
-}
-
-impl Root for Area {
-    type Root = Length;
-
-    fn root(self) -> Self::Root {
-        self.sqrt()
-    }
-}
-
-impl Root for Ratio {
-    type Root = Ratio;
-
-    fn root(self) -> Self::Root {
-        self.sqrt()
     }
 }
 

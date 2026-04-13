@@ -3,13 +3,13 @@ use core::{
     ops::{AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
-use num_traits::{ConstOne, ConstZero, One, Zero};
-use uom::si::f32::{Length, Ratio};
-
-use crate::{
-    matrix::Matrix,
-    vector::{Vector, real::Root},
+use num_traits::{One, Zero};
+use uom::{
+    Root,
+    si::f32::{Length, Ratio},
 };
+
+use crate::{matrix::Matrix, vector::Vector};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Line<const N: usize, T>(pub Vector<N, T>, pub Vector<N, T>);

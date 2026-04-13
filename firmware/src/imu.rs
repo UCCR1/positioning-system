@@ -7,7 +7,7 @@ use esp_hal::{
     spi::master::Spi,
 };
 use imu_lib::{
-    AngularPositionSensor, LinearAccelerationSensor,
+    AngularPositionSensor, LinearPositionSensor, LinearVelocitySensor,
     devices::{
         RegisterError,
         lsm6dsv::{
@@ -19,13 +19,16 @@ use imu_lib::{
 };
 use linalg::vector::Vector;
 use uom::si::{
-    f32::{Acceleration, Angle, Frequency},
+    f32::{Acceleration, Angle, Frequency, Length, Velocity},
     frequency::hertz,
 };
 
 pub static HEADING_SIGNAL: Signal<CriticalSectionRawMutex, Angle> = Signal::new();
 pub static ACCELERATION_SIGNAL: Signal<CriticalSectionRawMutex, Vector<3, Acceleration>> =
     Signal::new();
+
+pub static VELOCITY_SIGNAL: Signal<CriticalSectionRawMutex, Vector<3, Velocity>> = Signal::new();
+pub static POSITION_SIGNAL: Signal<CriticalSectionRawMutex, Vector<3, Length>> = Signal::new();
 
 async fn imu_task<'a, D: SpiDevice>(
     mut imu: Lsm6dsv<D>,
@@ -75,7 +78,15 @@ async fn imu_task<'a, D: SpiDevice>(
 
         HEADING_SIGNAL.signal(angular_position.yaw());
 
-        ACCELERATION_SIGNAL.signal(inertial_sensor.get_linear_acceleration()?);
+        ACCELERATION_SIGNAL.signal(inertial_sensor.get_local_linear_acceleration()?);
+
+        let Ok(linear_velocity) = inertial_sensor.get_linear_velocity();
+
+        VELOCITY_SIGNAL.signal(linear_velocity);
+
+        let Ok(linear_position) = inertial_sensor.get_linear_position();
+
+        POSITION_SIGNAL.signal(linear_position);
     }
 }
 
