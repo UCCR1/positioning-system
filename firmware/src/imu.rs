@@ -6,14 +6,15 @@ use esp_hal::{
     gpio::{Input, Output},
     spi::master::Spi,
 };
+use esp_println::println;
 use imu_lib::{
-    AngularVelocitySensor, CalibratableImu,
+    AngularPositionSensor, LinearAccelerationSensor,
+    calibrateable::CalibratableImu,
+    integrator::AngularVelocityIntegrator,
     modules::lsm6dsv::{GyroscopeDataRate, GyroscopeFullScaleSelection, Lsm6dsv},
     registers::RegisterError,
 };
-use linalg::quaternion::{Quaternion, UnitQuaternion};
-use num_traits::Zero;
-use uom::si::f32::{Angle, AngularVelocity, Frequency, Ratio};
+use uom::si::f32::{Angle, Frequency};
 
 pub static HEADING_SIGNAL: Signal<CriticalSectionRawMutex, Angle> = Signal::new();
 
@@ -22,48 +23,35 @@ const IMU_FREQUENCY: GyroscopeDataRate = GyroscopeDataRate::_240Hz;
 const NUM_CALIBRATION_SAMPLES: usize = 500;
 
 async fn imu_task<'a, D: SpiDevice>(
-    imu: Lsm6dsv<D>,
+    mut imu: Lsm6dsv<D>,
     mut int1: Input<'static>,
 ) -> Result<(), RegisterError<D::Error>> {
-    let mut current_rotation: UnitQuaternion<Ratio> = UnitQuaternion::identity();
+    imu.set_gyroscope_data_rate(IMU_FREQUENCY)?;
+    imu.set_gyroscope_full_scale(GyroscopeFullScaleSelection::Dps2000)?;
+    imu.enable_interrupts(true)?;
+    imu.set_data_ready_interrupts_int1(true, false)?;
 
-    let mut imu = CalibratableImu::<NUM_CALIBRATION_SAMPLES, _>::new(imu);
-
-    imu.base().set_gyroscope_data_rate(IMU_FREQUENCY)?;
-    imu.base()
-        .set_gyroscope_full_scale(GyroscopeFullScaleSelection::Dps2000)?;
-    imu.base().enable_interrupts(true)?;
-    imu.base().set_data_ready_interrupts_int1(true, false)?;
+    let mut integrating_imu =
+        AngularVelocityIntegrator::new(CalibratableImu::<NUM_CALIBRATION_SAMPLES, _>::new(imu));
 
     let dt = 1.0 / Frequency::from(IMU_FREQUENCY);
 
     loop {
         int1.wait_for_high().await;
 
-        if !imu.base().gyroscope_data_ready()? {
+        if !integrating_imu.base().base().gyroscope_data_ready()? {
             continue;
         }
 
-        if !imu.calibration_complete() {
-            imu.calibrate()?;
+        if !integrating_imu.base().calibration_complete() {
+            integrating_imu.base().calibrate()?;
 
             continue;
         }
 
-        let current_velocity = imu.get_angular_velocity()?;
+        integrating_imu.poll(dt)?;
 
-        let p = Quaternion::from_array([
-            AngularVelocity::zero(),
-            current_velocity.x(),
-            current_velocity.y(),
-            current_velocity.z(),
-        ]);
-
-        let q_dot = current_rotation.hamilton_product(p) * 0.5;
-
-        current_rotation = (*current_rotation + q_dot * dt).normalized();
-
-        HEADING_SIGNAL.signal(current_rotation.yaw());
+        HEADING_SIGNAL.signal(integrating_imu.get_angular_position()?.yaw());
     }
 }
 
