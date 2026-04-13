@@ -1,10 +1,6 @@
 #![no_std]
 
-use core::{
-    fmt::Debug,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use core::{fmt::Debug, marker::PhantomData};
 
 use embedded_hal::spi::SpiDevice;
 use heapless::Deque;
@@ -23,10 +19,14 @@ pub const G: Acceleration = Acceleration {
     units: PhantomData,
 };
 
-pub trait Imu {
+pub trait AngularVelocitySensor {
     type Error: Debug;
 
     fn get_angular_velocity(&mut self) -> Result<Vector<3, AngularVelocity>, Self::Error>;
+}
+
+pub trait LinearAccelerationSensor {
+    type Error: Debug;
 
     fn get_linear_acceleration(&mut self) -> Result<Vector<3, Acceleration>, Self::Error>;
 }
@@ -58,7 +58,7 @@ pub struct CalibratableImu<const N: usize, T> {
     gyroscope_calibration_samples: Deque<Vector<3, AngularVelocity>, N>,
 }
 
-impl<const N: usize, T: Imu> CalibratableImu<N, T> {
+impl<const N: usize, T> CalibratableImu<N, T> {
     pub fn new(imu: T) -> Self {
         Self {
             imu,
@@ -69,6 +69,14 @@ impl<const N: usize, T: Imu> CalibratableImu<N, T> {
         }
     }
 
+    pub fn base(&mut self) -> &mut T {
+        &mut self.imu
+    }
+}
+
+impl<const N: usize, E, T: AngularVelocitySensor<Error = E> + LinearAccelerationSensor<Error = E>>
+    CalibratableImu<N, T>
+{
     fn compute_statistics(&mut self) {
         self.gyroscopic_drift = Vector::default();
 
@@ -89,8 +97,8 @@ impl<const N: usize, T: Imu> CalibratableImu<N, T> {
         self.gyroscope_calibration_samples.is_full()
     }
 
-    pub fn calibrate(&mut self) -> Result<(), T::Error> {
-        let gyroscope_reading = self.get_angular_velocity()?;
+    pub fn calibrate(&mut self) -> Result<(), E> {
+        let gyroscope_reading = self.base().get_angular_velocity()?;
 
         if self.gyroscope_calibration_samples.is_full() {
             self.gyroscope_calibration_samples.pop_front();
@@ -104,26 +112,14 @@ impl<const N: usize, T: Imu> CalibratableImu<N, T> {
 
         Ok(())
     }
+}
 
-    pub fn get_calibrated_angular_velocity(
-        &mut self,
-    ) -> Result<Vector<3, AngularVelocity>, T::Error> {
-        let reading = self.get_angular_velocity()?;
+impl<const N: usize, T: AngularVelocitySensor> AngularVelocitySensor for CalibratableImu<N, T> {
+    type Error = T::Error;
+
+    fn get_angular_velocity(&mut self) -> Result<Vector<3, AngularVelocity>, T::Error> {
+        let reading = self.base().get_angular_velocity()?;
 
         Ok(reading - self.gyroscopic_drift)
-    }
-}
-
-impl<const N: usize, T> Deref for CalibratableImu<N, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.imu
-    }
-}
-
-impl<const N: usize, T> DerefMut for CalibratableImu<N, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.imu
     }
 }

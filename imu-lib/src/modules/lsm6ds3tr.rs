@@ -6,7 +6,10 @@ use uom::si::{
     f32::{Acceleration, AngularVelocity},
 };
 
-use crate::{G, Imu, SpiImu, declare_registers, registers::RegisterError};
+use crate::{
+    AngularVelocitySensor, G, LinearAccelerationSensor, SpiImu, declare_registers,
+    registers::RegisterError,
+};
 
 #[derive(TryFromPrimitive, IntoPrimitive, Debug)]
 #[repr(u8)]
@@ -145,7 +148,7 @@ impl<D: SpiDevice> SpiImu<D> for Lsm6ds3tr<D> {
     }
 }
 
-impl<D: SpiDevice> Imu for Lsm6ds3tr<D> {
+impl<D: SpiDevice> AngularVelocitySensor for Lsm6ds3tr<D> {
     type Error = RegisterError<D::Error>;
 
     fn get_angular_velocity(
@@ -159,6 +162,10 @@ impl<D: SpiDevice> Imu for Lsm6ds3tr<D> {
 
         Ok(Vector::from_array(velocities))
     }
+}
+
+impl<D: SpiDevice> LinearAccelerationSensor for Lsm6ds3tr<D> {
+    type Error = RegisterError<D::Error>;
 
     fn get_linear_acceleration(
         &mut self,

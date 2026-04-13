@@ -7,7 +7,7 @@ use esp_hal::{
     spi::master::Spi,
 };
 use imu_lib::{
-    CalibratableImu,
+    AngularVelocitySensor, CalibratableImu,
     modules::lsm6dsv::{GyroscopeDataRate, GyroscopeFullScaleSelection, Lsm6dsv},
     registers::RegisterError,
 };
@@ -29,17 +29,18 @@ async fn imu_task<'a, D: SpiDevice>(
 
     let mut imu = CalibratableImu::<NUM_CALIBRATION_SAMPLES, _>::new(imu);
 
-    imu.set_gyroscope_data_rate(IMU_FREQUENCY)?;
-    imu.set_gyroscope_full_scale(GyroscopeFullScaleSelection::Dps2000)?;
-    imu.enable_interrupts(true)?;
-    imu.set_data_ready_interrupts_int1(true, false)?;
+    imu.base().set_gyroscope_data_rate(IMU_FREQUENCY)?;
+    imu.base()
+        .set_gyroscope_full_scale(GyroscopeFullScaleSelection::Dps2000)?;
+    imu.base().enable_interrupts(true)?;
+    imu.base().set_data_ready_interrupts_int1(true, false)?;
 
     let dt = 1.0 / Frequency::from(IMU_FREQUENCY);
 
     loop {
         int1.wait_for_high().await;
 
-        if !imu.gyroscope_data_ready()? {
+        if !imu.base().gyroscope_data_ready()? {
             continue;
         }
 
@@ -49,7 +50,7 @@ async fn imu_task<'a, D: SpiDevice>(
             continue;
         }
 
-        let current_velocity = imu.get_calibrated_angular_velocity()?;
+        let current_velocity = imu.get_angular_velocity()?;
 
         let p = Quaternion::from_array([
             AngularVelocity::zero(),
