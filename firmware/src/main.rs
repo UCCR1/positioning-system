@@ -11,7 +11,7 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use esp_println::println;
-use imu_lib::modules::lsm6dsv::Lsm6dsv;
+use imu_lib::devices::lsm6dsv::Lsm6dsv;
 use linalg::{real_vector, vector::real::UnitVector};
 use position_lib::odometry::TrackingWheel;
 use uom::si::{

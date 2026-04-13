@@ -1,6 +1,13 @@
-use embedded_hal::spi::{Operation, SpiDevice};
+use core::ops::Mul;
 
-pub trait Register {
+use embedded_hal::spi::{Operation, SpiDevice};
+use linalg::vector::Vector;
+
+pub mod lsm6ds3tr;
+pub mod lsm6dsv;
+mod macros;
+
+trait Register {
     const ADDRESS: u8;
 }
 
@@ -10,7 +17,7 @@ pub enum RegisterError<D> {
     DeviceError(D),
 }
 
-pub trait ReadRegister<const N: usize>: Register + TryFrom<[u8; N]> {
+trait ReadRegister<const N: usize>: Register + TryFrom<[u8; N]> {
     fn read_bytes<D: SpiDevice>(device: &mut D) -> Result<[u8; N], D::Error> {
         let mut data = [0u8; N];
 
@@ -31,7 +38,7 @@ pub trait ReadRegister<const N: usize>: Register + TryFrom<[u8; N]> {
     }
 }
 
-pub trait WriteRegister<const N: usize>: Register + TryInto<[u8; N]> {
+trait WriteRegister<const N: usize>: Register + TryInto<[u8; N]> {
     fn write_bytes<D: SpiDevice>(device: &mut D, bytes: [u8; N]) -> Result<(), D::Error> {
         device.transaction(&mut [Operation::Write(&[Self::ADDRESS]), Operation::Write(&bytes)])?;
 
@@ -48,4 +55,30 @@ pub trait WriteRegister<const N: usize>: Register + TryInto<[u8; N]> {
 
         Ok(())
     }
+}
+
+trait RegisterDevice<D: SpiDevice> {
+    fn device(&mut self) -> &mut D;
+
+    fn read_register<const N: usize, T: ReadRegister<N>>(
+        &mut self,
+    ) -> Result<T, RegisterError<D::Error>> {
+        T::read(self.device())
+    }
+
+    fn write_register<const N: usize, T: WriteRegister<N>>(
+        &mut self,
+        value: T,
+    ) -> Result<(), RegisterError<D::Error>> {
+        value.write(self.device())?;
+
+        Ok(())
+    }
+}
+
+fn make_full_scale_vector<O: Copy, const N: usize>(data: [i16; N], sensitivity: O) -> Vector<N, O>
+where
+    O: Mul<f32, Output = O>,
+{
+    Vector::from_array(data.map(|val| sensitivity * val as f32))
 }

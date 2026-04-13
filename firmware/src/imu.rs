@@ -8,12 +8,14 @@ use esp_hal::{
 };
 use imu_lib::{
     AngularPositionSensor, LinearAccelerationSensor,
-    inertial_sensor::{InertialSensor, InertialSensorError},
-    modules::lsm6dsv::{
-        AccelerometerDataRate, AccelerometerFullScaleSelection, GyroscopeDataRate,
-        GyroscopeFullScaleSelection, Lsm6dsv,
+    devices::{
+        RegisterError,
+        lsm6dsv::{
+            AccelerometerDataRate, AccelerometerFullScaleSelection, GyroscopeDataRate,
+            GyroscopeFullScaleSelection, Lsm6dsv,
+        },
     },
-    registers::RegisterError,
+    inertial_sensor::{InertialSensor, InertialSensorError},
 };
 use linalg::vector::Vector;
 use uom::si::{

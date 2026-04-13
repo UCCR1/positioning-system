@@ -7,8 +7,8 @@ use uom::si::{
 };
 
 use crate::{
-    AngularVelocitySensor, G, LinearAccelerationSensor, RegisterDevice, declare_registers,
-    registers::RegisterError,
+    AngularVelocitySensor, G, LinearAccelerationSensor, declare_registers,
+    devices::{RegisterDevice, RegisterError, make_full_scale_vector},
 };
 
 #[derive(TryFromPrimitive, IntoPrimitive, Debug)]
@@ -156,11 +156,10 @@ impl<D: SpiDevice> AngularVelocitySensor for Lsm6ds3tr<D> {
     ) -> Result<Vector<3, AngularVelocity>, RegisterError<D::Error>> {
         let GyroscopeOutputAll { x, y, z } = self.read_register()?;
 
-        let gyroscope_sensitivity = self.gyroscope_full_scale.as_velocity_per_lsb();
-
-        let velocities = [x, y, z].map(|val| val as f32 * gyroscope_sensitivity);
-
-        Ok(Vector::from_array(velocities))
+        Ok(make_full_scale_vector(
+            [x, y, z],
+            self.gyroscope_full_scale.as_velocity_per_lsb(),
+        ))
     }
 }
 
@@ -172,10 +171,9 @@ impl<D: SpiDevice> LinearAccelerationSensor for Lsm6ds3tr<D> {
     ) -> Result<Vector<3, Acceleration>, RegisterError<D::Error>> {
         let AccelerometerOutputAll { x, y, z } = self.read_register()?;
 
-        let accelerometer_sensitivity = self.accelerometer_full_scale.as_acceleration_per_lsb();
-
-        let accelerations = [x, y, z].map(|val| val as f32 * accelerometer_sensitivity);
-
-        Ok(Vector::from_array(accelerations))
+        Ok(make_full_scale_vector(
+            [x, y, z],
+            self.accelerometer_full_scale.as_acceleration_per_lsb(),
+        ))
     }
 }
